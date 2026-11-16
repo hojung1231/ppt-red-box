@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.0"
+appVersion := "1.0.1"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -30,6 +30,7 @@ $^+c:: {
 }
 MButton:: {
     MouseGetPos &startX, &startY
+    TrackNativeFreeform()
     try {
         canvas := GetSlideCanvas()
         if !canvas
@@ -136,6 +137,7 @@ ToSlidePoint(canvas, x, y) {
 }
 
 InsertTextbox() {
+    TrackNativeFreeform()
     try {
         canvas := GetSlideCanvas()
         if !canvas
@@ -216,6 +218,8 @@ TrackNativeFreeform() {
         StopTrackingFreeform()
         return
     }
+    if GetKeyState("LButton", "P")
+        return
 
     ; PowerPoint can temporarily reject automation while its drawing tool is handling input.
     try {
@@ -230,11 +234,23 @@ TrackNativeFreeform() {
         shape := FindNewFreeform(slide.Shapes, nativeFreeform.originalIds)
         if !shape
             return
-        StyleOutline(shape)
-        shape.Line.BeginArrowheadStyle := 1 ; msoArrowheadNone
-        shape.Line.EndArrowheadStyle := 1
-        StopTrackingFreeform()
+        FinishNativeFreeform(shape, nativeFreeform.hwnd)
     }
+}
+
+FinishNativeFreeform(shape, hwnd) {
+    Critical
+    StopTrackingFreeform()
+    if WinActive("ahk_id " hwnd) {
+        ; Release PowerPoint's drawing tool before using shape shortcuts.
+        SendEvent "{Esc}"
+        Sleep 50
+    }
+    try StyleOutline(shape)
+    try shape.Line.BeginArrowheadStyle := 1 ; msoArrowheadNone
+    try shape.Line.EndArrowheadStyle := 1
+    if WinActive("ahk_id " hwnd)
+        try shape.Select()
 }
 
 FindNewFreeform(shapes, originalIds) {
@@ -243,7 +259,7 @@ FindNewFreeform(shapes, originalIds) {
         return false
     Loop count {
         shape := shapes.Item(count - A_Index + 1)
-        if shape.Type = 5 && !originalIds.Has(shape.Id) ; msoFreeform
+        if (shape.Type = 5 || shape.Type = 9) && !originalIds.Has(shape.Id)
             return shape
     }
     return false
