@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.2"
+appVersion := "1.0.3"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -401,8 +401,7 @@ InitializeApp() {
     A_TrayMenu.Default := "단축키 목록"
     A_TrayMenu.ClickCount := 2
     A_TrayMenu.Add("업데이트 확인", (*) => CheckForUpdate(true))
-    if !A_Args.Length || A_Args[1] != "--updated"
-        ShowShortcutWindow()
+    ShowShortcutWindow()
     SetTimer CheckForUpdate, -3000
     SetTimer CheckForUpdatePeriodically, 3600000
 }
@@ -518,8 +517,9 @@ ApplyUpdateWhenIdle() {
         if !DllCall("MoveFileExW", "Str", staged, "Str", A_ScriptFullPath, "UInt", 9)
             throw OSError()
         pendingUpdate := ""
-        Run Format('"{}" /restart "{}" --updated', A_AhkPath, A_ScriptFullPath)
-        ExitApp()
+        SetUpdateStatus("업데이트를 적용했습니다. 앱을 다시 시작합니다.")
+        Reload()
+        SetTimer ReportReloadFailure, -5000
     } catch {
         pendingUpdate := ""
         SetUpdateStatus("다운로드한 업데이트를 적용할 수 없습니다.")
@@ -527,6 +527,10 @@ ApplyUpdateWhenIdle() {
         if FileExist(staged)
             try FileDelete(staged)
     }
+}
+
+ReportReloadFailure() {
+    SetUpdateStatus("새 버전을 저장했습니다. 적용하려면 이 파일을 다시 실행하세요.")
 }
 
 SetUpdateStatus(message) {
