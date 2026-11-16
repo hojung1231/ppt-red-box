@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.1"
+appVersion := "1.0.2"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -17,6 +17,10 @@ if A_LineFile = A_ScriptFullPath
 
 #HotIf WinActive("ahk_exe POWERPNT.EXE")
 ^+x::InsertTextbox()
+^+n:: {
+    ApplyToSelectedShapes(ToggleShapeGlow)
+    KeyWait "n"
+}
 ^+SC029::CycleSelectedDashStyles()
 ^+WheelUp::AdjustSelectedOutlineWeight(0.25)
 ^+WheelDown::AdjustSelectedOutlineWeight(-0.25)
@@ -300,18 +304,29 @@ CycleArrowheads(line) {
 }
 
 CycleSelectedDashStyles() {
-    ApplyToSelectedLines((line) => line.DashStyle := NextDashStyle(line.DashStyle))
+    ApplyToSelectedShapes((shape) => shape.Line.DashStyle := NextDashStyle(shape.Line.DashStyle))
 }
 
 AdjustSelectedOutlineWeight(delta) {
-    ApplyToSelectedLines((line) => line.Weight := AdjustedOutlineWeight(line.Weight, delta))
+    ApplyToSelectedShapes((shape) => shape.Line.Weight := AdjustedOutlineWeight(shape.Line.Weight, delta))
 }
 
 AdjustedOutlineWeight(current, delta) {
     return Max(0.25, current + delta)
 }
 
-ApplyToSelectedLines(changeLine) {
+ToggleShapeGlow(shape) {
+    glow := shape.Glow
+    if glow.Radius > 0 {
+        glow.Radius := 0
+        return
+    }
+    glow.Color.RGB := 0xFFFFFF
+    glow.Transparency := 0.10
+    glow.Radius := 3
+}
+
+ApplyToSelectedShapes(changeShape) {
     TrackNativeFreeform()
     try {
         ppt := ComObjActive("PowerPoint.Application")
@@ -320,7 +335,7 @@ ApplyToSelectedLines(changeLine) {
             return
         selected := selection.ShapeRange
         Loop selected.Count {
-            try changeLine(selected.Item(A_Index).Line)
+            try changeShape(selected.Item(A_Index))
         }
     }
 }
@@ -401,12 +416,13 @@ ShowShortcutWindow(*) {
         window.SetFont("s13 Bold", "Malgun Gothic")
         window.AddText("w515", "PowerPoint 단축키")
         window.SetFont("s9 Norm", "Malgun Gothic")
-        list := window.AddListView("w515 r7 -Multi", ["단축키", "동작"])
+        list := window.AddListView("w515 r8 -Multi", ["단축키", "동작"])
         for shortcut in [
             ["휠 클릭", "PowerPoint 자유형 시작"],
             ["휠 드래그", "빨간 사각형 그리기"],
             ["Ctrl+Shift+A", "화살촉 → 시작점, 끝점, 양쪽, 없음"],
             ["Ctrl+Shift+C", "테두리 색 → 빨강, 파랑, 노랑, 초록"],
+            ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["Ctrl+Shift+X", "텍스트 상자 → 4 × 1.28cm, 나눔바른고딕 OTF 12pt"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
             ["Ctrl+Shift+휠", "선 두께 → 위로 0.25pt 증가, 아래로 0.25pt 감소"]
