@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.6"
+appVersion := "1.0.7"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -16,6 +16,7 @@ if A_LineFile = A_ScriptFullPath
     InitializeApp()
 
 #HotIf WinActive("ahk_exe POWERPNT.EXE")
+F3::ApplyNanumFontToSelection()
 ^+x::InsertTextbox()
 ^+n:: {
     ApplyToSelectedShapes(ToggleShapeGlow)
@@ -178,8 +179,7 @@ CreateTextbox(shapes, point, slideWidth, slideHeight) {
         shape.Width := width
         shape.Height := height
         font := frame.TextRange.Font
-        font.Name := "NanumBarunGothicOTF"
-        font.NameFarEast := "NanumBarunGothicOTF"
+        SetNanumFont(font)
         font.Size := 12
         font.Color.RGB := 0x000000
     } catch as error {
@@ -187,6 +187,32 @@ CreateTextbox(shapes, point, slideWidth, slideHeight) {
         throw error
     }
     return shape
+}
+
+ApplyNanumFontToSelection() {
+    TrackNativeFreeform()
+    try {
+        ppt := ComObjActive("PowerPoint.Application")
+        selection := ppt.ActiveWindow.Selection
+        switch selection.Type {
+            case 3: ; ppSelectionText
+                SetNanumFont(selection.TextRange.Font)
+            case 2: ; ppSelectionShapes
+                selected := selection.ShapeRange
+                Loop selected.Count {
+                    shape := selected.Item(A_Index)
+                    try {
+                        if shape.HasTextFrame = -1
+                            SetNanumFont(shape.TextFrame.TextRange.Font)
+                    }
+                }
+        }
+    }
+}
+
+SetNanumFont(font) {
+    font.Name := "NanumBarunGothicOTF"
+    font.NameFarEast := "NanumBarunGothicOTF"
 }
 
 DrawRectangle(canvas, x1, y1, x2, y2) {
@@ -437,13 +463,14 @@ ShowShortcutWindow(*) {
         window.SetFont("s13 Bold", "Malgun Gothic")
         window.AddText("w515", "PowerPoint 단축키")
         window.SetFont("s9 Norm", "Malgun Gothic")
-        list := window.AddListView("w515 r8 -Multi", ["단축키", "동작"])
+        list := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
         for shortcut in [
             ["휠 클릭", "PowerPoint 자유형 시작"],
             ["휠 드래그", "빨간 사각형 그리기"],
             ["Ctrl+Shift+A", "화살촉 → 시작점, 끝점, 양쪽, 없음"],
             ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
+            ["F3", "선택한 텍스트 글꼴 → 나눔바른고딕 OTF"],
             ["Ctrl+Shift+X", "텍스트 상자 → 4 × 0.64cm, 나눔바른고딕 OTF 12pt"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
             ["Ctrl+Shift+휠", "선 두께 → 위로 0.25pt 증가, 아래로 0.25pt 감소"]
