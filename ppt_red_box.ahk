@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.3"
+appVersion := "1.0.4"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -161,7 +161,7 @@ InsertTextbox() {
 CreateTextbox(shapes, point, slideWidth, slideHeight) {
     pointsPerCentimeter := 72 / 2.54
     width := 4 * pointsPerCentimeter
-    height := 1.28 * pointsPerCentimeter
+    height := 0.64 * pointsPerCentimeter
     left := Max(0, Min(point.x, slideWidth - width))
     top := Max(0, Min(point.y, slideHeight - height))
     shape := shapes.AddTextbox(1, left, top, width, height)
@@ -422,7 +422,7 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+A", "화살촉 → 시작점, 끝점, 양쪽, 없음"],
             ["Ctrl+Shift+C", "테두리 색 → 빨강, 파랑, 노랑, 초록"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
-            ["Ctrl+Shift+X", "텍스트 상자 → 4 × 1.28cm, 나눔바른고딕 OTF 12pt"],
+            ["Ctrl+Shift+X", "텍스트 상자 → 4 × 0.64cm, 나눔바른고딕 OTF 12pt"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
             ["Ctrl+Shift+휠", "선 두께 → 위로 0.25pt 증가, 아래로 0.25pt 감소"]
         ]
