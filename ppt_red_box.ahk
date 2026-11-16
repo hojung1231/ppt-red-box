@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.5"
+appVersion := "1.0.6"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -166,6 +166,12 @@ CreateTextbox(shapes, point, slideWidth, slideHeight) {
     top := Max(0, Min(point.y, slideHeight - height))
     shape := shapes.AddTextbox(1, left, top, width, height)
     try {
+        fill := shape.Fill
+        fill.Solid()
+        fill.Visible := -1
+        fill.ForeColor.RGB := 0xFFFFFF
+        fill.Transparency := 0.30
+
         frame := shape.TextFrame
         frame.AutoSize := 0
         frame.WordWrap := -1
