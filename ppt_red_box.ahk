@@ -2,14 +2,14 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.4"
+appVersion := "1.0.5"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
 pendingUpdate := ""
 updateStatus := ""
 outlineWeight := 1.5
-outlineColors := [0x0000FF, 0xFF0000, 0x00FFFF, 0x00FF00] ; Red, blue, yellow, green in Office BGR
+outlineColors := [0x0000FF, 0xFF0000, 0x00FFFF, 0x00FF00, 0x000000] ; Red, blue, yellow, green, black in Office BGR
 nativeFreeform := false
 
 if A_LineFile = A_ScriptFullPath
@@ -29,7 +29,7 @@ $^+a:: {
         Send "^+a"
 }
 $^+c:: {
-    if !CycleSelectedOutlines()
+    if !CycleSelectedColors()
         Send "^+c"
 }
 MButton:: {
@@ -175,6 +175,7 @@ CreateTextbox(shapes, point, slideWidth, slideHeight) {
         font.Name := "NanumBarunGothicOTF"
         font.NameFarEast := "NanumBarunGothicOTF"
         font.Size := 12
+        font.Color.RGB := 0x000000
     } catch as error {
         shape.Delete()
         throw error
@@ -321,6 +322,10 @@ ToggleShapeGlow(shape) {
         glow.Radius := 0
         return
     }
+    ApplyWhiteGlow(glow)
+}
+
+ApplyWhiteGlow(glow) {
     glow.Color.RGB := 0xFFFFFF
     glow.Transparency := 0.10
     glow.Radius := 3
@@ -348,7 +353,7 @@ NextDashStyle(current) {
     }
 }
 
-CycleSelectedOutlines() {
+CycleSelectedColors() {
     TrackNativeFreeform()
     changed := false
     try {
@@ -358,15 +363,25 @@ CycleSelectedOutlines() {
             return false
         selected := selection.ShapeRange
         Loop selected.Count {
-            shape := selected.Item(A_Index)
-            if shape.Tags.Item("PPT_RED_BOX_DRAWING") != "1"
-                continue
-            color := shape.Line.ForeColor
-            color.RGB := NextOutlineColor(color.RGB)
-            changed := true
+            try {
+                if CycleShapeColor(selected.Item(A_Index))
+                    changed := true
+            }
         }
     }
     return changed
+}
+
+CycleShapeColor(shape) {
+    if shape.Type = 17 { ; msoTextBox
+        color := shape.TextFrame.TextRange.Font.Color
+    } else if shape.Tags.Item("PPT_RED_BOX_DRAWING") = "1" {
+        color := shape.Line.ForeColor
+    } else {
+        return false
+    }
+    color.RGB := NextOutlineColor(color.RGB)
+    return true
 }
 
 NextOutlineColor(current) {
@@ -384,6 +399,7 @@ StyleOutline(shape) {
     shape.Line.Weight := outlineWeight
     shape.Line.DashStyle := 1 ; msoLineSolid
     shape.Tags.Add("PPT_RED_BOX_DRAWING", "1")
+    try ApplyWhiteGlow(shape.Glow)
 }
 
 ShowHint(message) {
@@ -420,7 +436,7 @@ ShowShortcutWindow(*) {
             ["휠 클릭", "PowerPoint 자유형 시작"],
             ["휠 드래그", "빨간 사각형 그리기"],
             ["Ctrl+Shift+A", "화살촉 → 시작점, 끝점, 양쪽, 없음"],
-            ["Ctrl+Shift+C", "테두리 색 → 빨강, 파랑, 노랑, 초록"],
+            ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["Ctrl+Shift+X", "텍스트 상자 → 4 × 0.64cm, 나눔바른고딕 OTF 12pt"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
