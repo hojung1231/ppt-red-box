@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.7"
+appVersion := "1.0.8"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -478,6 +478,15 @@ ShowShortcutWindow(*) {
             list.Add(, shortcut[1], shortcut[2])
         list.ModifyCol(1, 125)
         list.ModifyCol(2, 382)
+        window.AddText("xm y+14", "자주 쓰는 기호")
+        copyStatus := window.AddText("x+10 yp w250", "")
+        window.SetFont("s13", "Segoe UI Symbol")
+        for index, symbol in ["⌀", "↑", "↓", "←", "→"] {
+            position := index = 1 ? "xm y+6" : "x+6 yp"
+            button := window.AddButton(position " w48 h32", symbol)
+            button.OnEvent("Click", CopySymbol.Bind(symbol, copyStatus))
+        }
+        window.SetFont("s9", "Malgun Gothic")
         window.AddText("xm y+14 w515", "버전 " appVersion)
         updateStatus := window.AddText("xm y+5 w515", "실행 중에 자동으로 업데이트를 확인합니다.")
         window.AddButton("xm y+10 w120", "업데이트 확인").OnEvent("Click", (*) => CheckForUpdate(true))
@@ -485,6 +494,11 @@ ShowShortcutWindow(*) {
         window.OnEvent("Escape", (gui) => gui.Hide())
     }
     window.Show()
+}
+
+CopySymbol(symbol, status, *) {
+    A_Clipboard := symbol
+    status.Text := symbol " 복사됨"
 }
 
 CheckForUpdatePeriodically() {
