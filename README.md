@@ -17,7 +17,7 @@ Windows의 PowerPoint에서 동작하는 AutoHotkey v2 매크로입니다.
 | Ctrl + Shift + A | 화살촉을 시작점, 끝점, 양쪽, 없음 순으로 변경 |
 | Ctrl + Shift + C | 매크로로 만든 도형의 선 색을 빨강, 파랑, 노랑, 초록 순으로 변경 |
 | Ctrl + Shift + N | 선택한 도형의 흰색 네온 효과 켜기·끄기. 3pt, 투명도 10% |
-| Ctrl + Shift + X | 4 × 1.28cm 텍스트 상자 만들기. 나눔바른고딕 OTF 12pt |
+| Ctrl + Shift + X | 4 × 0.64cm 텍스트 상자 만들기. 나눔바른고딕 OTF 12pt |
 | Ctrl + Shift + &#96; | 선 종류를 실선, 사각 점선, 파선 순으로 변경 |
 | Ctrl + Shift + 휠 | 선 두께를 0.25pt씩 조절. 최소 0.25pt |
 
