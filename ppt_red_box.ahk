@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.20"
+appVersion := "1.0.21"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -120,7 +120,7 @@ $f:: {
     KeyWait "w"
 }
 ^3:: {
-    ToggleCatiaVisibility("Sketch3D")
+    ToggleCatiaVisibility("Wireframe3D")
     KeyWait "3"
 }
 ^2:: {
@@ -347,10 +347,10 @@ ToggleCatiaVisibility(kind) {
             saved.Push(selection.Item2(A_Index).Value)
         try {
             items := []
-            if kind = "Sketch" || kind = "Sketch3D" {
+            if kind = "Sketch" || kind = "Wireframe3D" {
                 selection.Clear()
-                query := kind = "Sketch3D"
-                    ? "(CATPrtSearch.Sketch + CATGmoSearch.GSMIntersect + CATGmoSearch.GSMProject),all"
+                query := kind = "Wireframe3D"
+                    ? "(CATPrtSearch.Point + CATPrtSearch.Line + CATPrtSearch.Curve + CATGmoSearch.GSMIntersect + CATGmoSearch.GSMProject),all"
                     : "CATPrtSearch.Sketch,all"
                 selection.Search(query)
                 Loop selection.Count2
@@ -781,7 +781,7 @@ ShowShortcutWindow(*) {
         catiaList := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
         catiaList.Add(, "Ctrl+1", "모든 솔리드 Body 숨기기·표시")
         catiaList.Add(, "Ctrl+2", "모든 스케치 숨기기·표시")
-        catiaList.Add(, "Ctrl+3", "스케치·Intersection·Projection 숨기기·표시")
+        catiaList.Add(, "Ctrl+3", "3D 점·선·곡선 숨기기·표시 (교차·투영 포함)")
         catiaList.Add(, "Ctrl+Q", "새 Body 만들기")
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
         catiaList.Add(, "Ctrl+R", "Reorder Children 열기")
