@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.19"
+appVersion := "1.0.20"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -96,8 +96,10 @@ MButton:: {
     KeyWait "p"
 }
 ~h:: {
-    if A_PriorHotkey = "~h" && A_TimeSincePriorHotkey < 350
-        HideCatiaContainerAndOpenSubtree()
+    if A_PriorHotkey = "~h" && A_TimeSincePriorHotkey < 350 {
+        if !ToggleCatiaConstruction()
+            HideCatiaContainerAndOpenSubtree()
+    }
     KeyWait "h"
 }
 $f:: {
@@ -130,6 +132,27 @@ $f:: {
     KeyWait "1"
 }
 #HotIf
+
+ToggleCatiaConstruction() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        selection := catia.ActiveDocument.Selection
+        if selection.Count2 != 1
+            return false
+        geometry := selection.Item2(1).Value
+        ; Construction is exposed by sketch Geometry2D objects.
+        construction := geometry.Construction
+    } catch {
+        return false
+    }
+    try {
+        geometry.Construction := !construction
+        ShowHint(construction ? "Standard Element" : "Construction Element")
+    } catch {
+        ShowHint("선택한 스케치 개체의 Construction/Standard를 변경할 수 없습니다.")
+    }
+    return true
+}
 
 HideCatiaContainerAndOpenSubtree() {
     selection := 0
@@ -763,7 +786,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
         catiaList.Add(, "Ctrl+R", "Reorder Children 열기")
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
-        catiaList.Add(, "HH", "상위 Body·Geometrical Set 숨김 + 서브트리 열기")
+        catiaList.Add(, "HH", "스케치: Construction/Standard · 3D: 상위 숨김+서브트리")
         catiaList.Add(, "PP", "스케치에서 Project 3D Elements 실행")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
