@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.16"
+appVersion := "1.0.17"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -90,6 +90,11 @@ MButton:: {
 #HotIf
 
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~p:: {
+    if A_PriorHotkey = "~p" && A_TimeSincePriorHotkey < 350
+        ProjectCatia3DElements()
+    KeyWait "p"
+}
 ~h:: {
     if A_PriorHotkey = "~h" && A_TimeSincePriorHotkey < 350
         HideCatiaContainerAndOpenSubtree()
@@ -198,6 +203,15 @@ HideCatiaContainerAndOpenSubtree() {
             }
         }
         ShowHint(error.Message)
+    }
+}
+
+ProjectCatia3DElements() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        catia.StartCommand("Project 3D Elements")
+    } catch {
+        ShowHint("CATIA 스케치 편집 중에 Project 3D Elements를 실행하세요.")
     }
 }
 
@@ -731,6 +745,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+R", "Reorder Children 열기")
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
         catiaList.Add(, "HH", "상위 Body·Geometrical Set 숨김 + 서브트리 열기")
+        catiaList.Add(, "PP", "스케치에서 Project 3D Elements 실행")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
