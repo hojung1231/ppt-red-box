@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.9"
+appVersion := "1.0.10"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -99,10 +99,6 @@ MButton:: {
 ToggleCatiaSolids() {
     try {
         catia := ComObjActive("CATIA.Application")
-        if catia.GetWorkbenchId() != "PrtCfg" {
-            ShowHint("CATIA Part Design에서 사용하세요.")
-            return
-        }
         document := catia.ActiveDocument
         part := document.Part
         bodies := part.Bodies
@@ -132,7 +128,7 @@ ToggleCatiaSolids() {
                 try selection.Add(item)
         }
     } catch {
-        ShowHint("CATIA V5의 CATPart를 Part Design에서 열고 다시 시도하세요.")
+        ShowHint("CATIA V5의 CATPart를 열고 다시 시도하세요.")
     }
 }
 
@@ -528,7 +524,7 @@ ShowShortcutWindow(*) {
         list.ModifyCol(1, 125)
         list.ModifyCol(2, 382)
         tabs.UseTab(2)
-        window.AddText("w515", "CATIA V5 · Part Design")
+        window.AddText("w515", "CATIA V5 · Part Design / GSD")
         catiaList := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
         catiaList.Add(, "Ctrl+1", "모든 솔리드 Body 숨기기·표시")
         catiaList.ModifyCol(1, 125)
