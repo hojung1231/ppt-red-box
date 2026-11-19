@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.8"
+appVersion := "1.0.9"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -88,6 +88,53 @@ MButton:: {
 #HotIf nativeFreeform && WinActive("ahk_id " nativeFreeform.hwnd)
 ~Esc Up::StopTrackingFreeform()
 #HotIf
+
+#HotIf WinActive("ahk_exe CNEXT.exe")
+^1:: {
+    ToggleCatiaSolids()
+    KeyWait "1"
+}
+#HotIf
+
+ToggleCatiaSolids() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() != "PrtCfg" {
+            ShowHint("CATIA Part Design에서 사용하세요.")
+            return
+        }
+        document := catia.ActiveDocument
+        part := document.Part
+        bodies := part.Bodies
+        if !bodies.Count
+            return
+        selection := document.Selection
+        saved := []
+        Loop selection.Count2
+            saved.Push(selection.Item2(A_Index).Value)
+        try {
+            target := 0 ; Show all when every body is hidden.
+            Loop bodies.Count {
+                selection.Clear()
+                selection.Add(bodies.Item(A_Index))
+                state := Buffer(4, 0)
+                selection.VisProperties.GetShow(ComValue(0x4003, state.Ptr))
+                if NumGet(state, 0, "Int") = 0
+                    target := 1 ; Hide all when any body is shown.
+            }
+            selection.Clear()
+            Loop bodies.Count
+                selection.Add(bodies.Item(A_Index))
+            selection.VisProperties.SetShow(target)
+        } finally {
+            selection.Clear()
+            for item in saved
+                try selection.Add(item)
+        }
+    } catch {
+        ShowHint("CATIA V5의 CATPart를 Part Design에서 열고 다시 시도하세요.")
+    }
+}
 
 IsDrag(x1, y1, x2, y2) {
     return Abs(x2 - x1) > 5 || Abs(y2 - y1) > 5
@@ -461,6 +508,8 @@ ShowShortcutWindow(*) {
         window := Gui(, "PowerPoint 그리기 도구")
         window.MarginX := 18, window.MarginY := 16
         window.SetFont("s13 Bold", "Malgun Gothic")
+        tabs := window.AddTab3("w550 h310", ["PowerPoint", "CATIA V5"])
+        tabs.UseTab(1)
         window.AddText("w515", "PowerPoint 단축키")
         window.SetFont("s9 Norm", "Malgun Gothic")
         list := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
@@ -478,6 +527,14 @@ ShowShortcutWindow(*) {
             list.Add(, shortcut[1], shortcut[2])
         list.ModifyCol(1, 125)
         list.ModifyCol(2, 382)
+        tabs.UseTab(2)
+        window.AddText("w515", "CATIA V5 · Part Design")
+        catiaList := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
+        catiaList.Add(, "Ctrl+1", "모든 솔리드 Body 숨기기·표시")
+        catiaList.ModifyCol(1, 125)
+        catiaList.ModifyCol(2, 382)
+        window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
+        tabs.UseTab()
         window.AddText("xm y+14", "자주 쓰는 기호")
         copyStatus := window.AddText("x+10 yp w250", "")
         window.SetFont("s13", "Segoe UI Symbol")
