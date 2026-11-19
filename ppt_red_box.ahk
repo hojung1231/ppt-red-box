@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.21"
+appVersion := "1.0.22"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -158,8 +158,6 @@ HideCatiaContainerAndOpenSubtree() {
     selection := 0
     original := 0
     container := 0
-    hidden := false
-    oldState := Buffer(4, 0)
     try {
         catia := ComObjActive("CATIA.Application")
         selection := catia.ActiveDocument.Selection
@@ -192,48 +190,14 @@ HideCatiaContainerAndOpenSubtree() {
             throw Error("상위 Body 또는 Geometrical Set을 찾을 수 없습니다.")
         selection.Clear()
         selection.Add(container)
-        selection.VisProperties.GetShow(ComValue(0x4003, oldState.Ptr))
+        ; CATFrameHeader.CATNls identifies this contextual command as
+        ; OpenNewSubTree. Use its internal name instead of menu navigation.
+        catia.StartCommand("OpenNewSubTree")
+        selection.Clear()
+        selection.Add(container)
         selection.VisProperties.SetShow(1)
-        hidden := true
-        ; Open Sub-Tree is a contextual command in CATIA V5.
-        Send "{AppsKey}"
-        menuWindow := WinWait("ahk_class #32768 ahk_exe CNEXT.exe", , 1)
-        if !menuWindow
-            throw Error("선택한 컨테이너의 우클릭 메뉴를 열 수 없습니다.")
-        menu := SendMessage(0x1E1, 0, 0, , "ahk_id " menuWindow) ; MN_GETHMENU
-        steps := 0
-        found := false
-        Loop DllCall("GetMenuItemCount", "Ptr", menu, "Int") {
-            index := A_Index - 1
-            label := Buffer(1024, 0)
-            DllCall("GetMenuStringW", "Ptr", menu, "UInt", index,
-                "Ptr", label.Ptr, "Int", 512, "UInt", 0x400)
-            text := StrReplace(StrGet(label, "UTF-16"), "&")
-            state := DllCall("GetMenuState", "Ptr", menu, "UInt", index, "UInt", 0x400, "UInt")
-            if state & 0x803 ; disabled, grayed, or separator
-                continue
-            if text = "Open Sub-Tree" {
-                found := true
-                break
-            }
-            steps++
-        }
-        if !found {
-            Send "{Esc}"
-            throw Error("우클릭 메뉴에서 Open Sub-Tree를 찾을 수 없습니다.")
-        }
-        Send "{Home}"
-        Loop steps
-            Send "{Down}"
-        Send "{Enter}"
+        selection.Clear()
     } catch as error {
-        if hidden && container {
-            try {
-                selection.Clear()
-                selection.Add(container)
-                selection.VisProperties.SetShow(NumGet(oldState, 0, "Int"))
-            }
-        }
         if selection && original {
             try {
                 selection.Clear()
