@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.23"
+appVersion := "1.0.24"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -137,18 +137,31 @@ ToggleCatiaConstruction() {
     try {
         catia := ComObjActive("CATIA.Application")
         selection := catia.ActiveDocument.Selection
-        if selection.Count2 != 1
+        if !selection.Count2
             return false
-        geometry := selection.Item2(1).Value
-        ; Construction is exposed by sketch Geometry2D objects.
-        construction := geometry.Construction
+        elements := []
+        Loop selection.Count2 {
+            geometry := selection.Item2(A_Index).Value
+            ; Read every original state before modifying the selection.
+            construction := geometry.Construction
+            elements.Push({geometry: geometry, construction: construction})
+        }
     } catch {
         return false
     }
+    changed := []
     try {
-        geometry.Construction := !construction
-        ShowHint(construction ? "Standard Element" : "Construction Element")
+        for element in elements {
+            element.geometry.Construction := !element.construction
+            changed.Push(element)
+        }
+        if elements.Length = 1
+            ShowHint(elements[1].construction ? "Standard Element" : "Construction Element")
+        else
+            ShowHint(elements.Length "개 개체의 Construction/Standard 전환")
     } catch {
+        for element in changed
+            try element.geometry.Construction := element.construction
         ShowHint("선택한 스케치 개체의 Construction/Standard를 변경할 수 없습니다.")
     }
     return true
