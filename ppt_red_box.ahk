@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.11"
+appVersion := "1.0.12"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -90,6 +90,14 @@ MButton:: {
 #HotIf
 
 #HotIf WinActive("ahk_exe CNEXT.exe")
+^+Up:: {
+    MoveCatiaTreeItem(-1)
+    KeyWait "Up"
+}
+^+Down:: {
+    MoveCatiaTreeItem(1)
+    KeyWait "Down"
+}
 ^q:: {
     CreateCatiaContainer("Body")
     KeyWait "q"
@@ -103,6 +111,115 @@ MButton:: {
     KeyWait "1"
 }
 #HotIf
+
+MoveCatiaTreeItem(direction) {
+    dialog := 0
+    selection := 0
+    item := 0
+    try {
+        catia := ComObjActive("CATIA.Application")
+        document := catia.ActiveDocument
+        selection := document.Selection
+        if selection.Count2 != 1 {
+            ShowHint("트리에서 Body 또는 Geometrical Set 하나를 선택하세요.")
+            return
+        }
+        element := selection.Item2(1)
+        if element.Type != "Body" && element.Type != "HybridBody" {
+            ShowHint("Body 또는 Geometrical Set을 선택하세요.")
+            return
+        }
+        item := element.Value
+        parent := item.Parent
+        ; Some releases expose the containing collection as Parent.
+        if parent.Name = "Bodies" || parent.Name = "HybridBodies"
+            parent := parent.Parent
+        selection.Clear()
+        selection.Add(parent)
+        catia.StartCommand("Reorder Children")
+        dialog := WinWait("Reorder Children ahk_exe CNEXT.exe", , 3)
+        if !dialog
+            throw Error("Reorder Children 창을 열 수 없습니다.")
+        target := "ahk_id " dialog
+        list := 0
+        row := 0
+        entries := []
+        Loop 20 {
+            for control in WinGetControlsHwnd(target) {
+                try {
+                    values := ControlGetItems(control)
+                    matches := []
+                    for index, value in values {
+                        if value = item.Name
+                            matches.Push(index)
+                    }
+                    if matches.Length = 1 {
+                        list := control
+                        row := matches[1]
+                        entries := values
+                        break
+                    }
+                }
+            }
+            if list
+                break
+            Sleep 50
+        }
+        if !list
+            throw Error("순서 목록에서 선택 항목을 확인할 수 없습니다.")
+        if row + direction < 1 || row + direction > entries.Length
+            return
+        ControlChooseIndex(row, list)
+        ControlGetPos(&lx, &ly, &lw, &lh, list)
+        arrows := []
+        for control in WinGetControlsHwnd(target) {
+            if control = list
+                continue
+            ControlGetPos(&cx, &cy, &cw, &ch, control)
+            if cx >= lx + lw && cy >= ly - 5 && cy < ly + lh && cw > 10 && ch > 10 {
+                insertAt := 1
+                while insertAt <= arrows.Length && arrows[insertAt].y < cy
+                    insertAt++
+                arrows.InsertAt(insertAt, {hwnd: control, y: cy})
+            }
+        }
+        if arrows.Length < 2
+            throw Error("위·아래 이동 버튼을 찾을 수 없습니다.")
+        ControlClick(arrows[direction < 0 ? 1 : 2].hwnd, , , , , "NA")
+        Sleep 100
+        ; Verify the intended single-step move before accepting the dialog.
+        values := ControlGetItems(list)
+        if values[row + direction] != item.Name
+            throw Error("한 칸 이동 결과를 확인할 수 없습니다.")
+        confirm := 0
+        for control in WinGetControlsHwnd(target) {
+            try {
+                if StrReplace(ControlGetText(control), "&") = "OK" {
+                    confirm := control
+                    break
+                }
+            }
+        }
+        if !confirm
+            throw Error("확인 버튼을 찾을 수 없습니다.")
+        ControlClick(confirm, , , , , "NA")
+        if !WinWaitClose(target, , 2)
+            throw Error("순서 변경을 완료할 수 없습니다.")
+        dialog := 0
+    } catch as error {
+        ShowHint(error.Message)
+    } finally {
+        if dialog && WinExist("ahk_id " dialog) {
+            try ControlSend("{Esc}", , "ahk_id " dialog)
+        }
+        if selection && item {
+            try {
+                selection.Clear()
+                selection.Add(item)
+            }
+        }
+    }
+}
 
 CreateCatiaContainer(kind) {
     try {
@@ -551,6 +668,8 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+1", "모든 솔리드 Body 숨기기·표시")
         catiaList.Add(, "Ctrl+Q", "새 Body 만들기")
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
+        catiaList.Add(, "Ctrl+Shift+↑", "선택한 Body·Geometrical Set을 한 칸 위로")
+        catiaList.Add(, "Ctrl+Shift+↓", "선택한 Body·Geometrical Set을 한 칸 아래로")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
