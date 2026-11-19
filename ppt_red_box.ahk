@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.10"
+appVersion := "1.0.11"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -90,11 +90,33 @@ MButton:: {
 #HotIf
 
 #HotIf WinActive("ahk_exe CNEXT.exe")
+^q:: {
+    CreateCatiaContainer("Body")
+    KeyWait "q"
+}
+^w:: {
+    CreateCatiaContainer("Geometrical Set")
+    KeyWait "w"
+}
 ^1:: {
     ToggleCatiaSolids()
     KeyWait "1"
 }
 #HotIf
+
+CreateCatiaContainer(kind) {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        part := catia.ActiveDocument.Part
+        if kind = "Body"
+            created := part.Bodies.Add()
+        else
+            created := part.HybridBodies.Add()
+        part.InWorkObject := created
+    } catch {
+        ShowHint("CATIA V5의 CATPart에서 " kind "를 만들 수 없습니다.")
+    }
+}
 
 ToggleCatiaSolids() {
     try {
@@ -527,6 +549,8 @@ ShowShortcutWindow(*) {
         window.AddText("w515", "CATIA V5 · Part Design / GSD")
         catiaList := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
         catiaList.Add(, "Ctrl+1", "모든 솔리드 Body 숨기기·표시")
+        catiaList.Add(, "Ctrl+Q", "새 Body 만들기")
+        catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
