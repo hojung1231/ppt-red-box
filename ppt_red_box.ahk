@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.17"
+appVersion := "1.0.18"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -143,17 +143,28 @@ HideCatiaContainerAndOpenSubtree() {
         original := selection.Item2(1).Value
         candidate := original
         Loop 30 {
-            selection.Clear()
-            selection.Add(candidate)
-            kind := selection.Item2(1).Type
-            if kind = "Body" || kind = "HybridBody" {
-                container := candidate
-                break
+            ; Parent paths include collections such as HybridShapes, which
+            ; CATIA cannot add to Selection. Inspect containers directly.
+            try {
+                shapes := candidate.Shapes
+                sketches := candidate.Sketches
+                container := candidate ; Body
             }
+            if !container {
+                try {
+                    shapes := candidate.HybridShapes
+                    sketches := candidate.HybridSketches
+                    container := candidate ; HybridBody / Geometrical Set
+                }
+            }
+            if container
+                break
             candidate := candidate.Parent
         }
         if !container
             throw Error("상위 Body 또는 Geometrical Set을 찾을 수 없습니다.")
+        selection.Clear()
+        selection.Add(container)
         selection.VisProperties.GetShow(ComValue(0x4003, oldState.Ptr))
         selection.VisProperties.SetShow(1)
         hidden := true
