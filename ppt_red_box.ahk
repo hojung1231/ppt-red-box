@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.24"
+appVersion := "1.0.25"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -90,6 +90,11 @@ MButton:: {
 #HotIf
 
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~i:: {
+    if A_PriorHotkey = "~i" && A_TimeSincePriorHotkey < 350
+        IsolateCatiaSelection()
+    KeyWait "i"
+}
 ~p:: {
     if A_PriorHotkey = "~p" && A_TimeSincePriorHotkey < 350
         ProjectCatia3DElements()
@@ -227,6 +232,19 @@ OpenCatiaSubtree(catia, selection, container) {
         ; Leave this selection intact for CATIA's command event loop.
     } catch {
         ShowHint("서브트리를 열 수 없습니다. 선택된 컨테이너에서 Open Sub-Tree를 확인하세요.")
+    }
+}
+
+IsolateCatiaSelection() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if !catia.ActiveDocument.Selection.Count2 {
+            ShowHint("Isolate할 개체를 먼저 선택하세요.")
+            return
+        }
+        catia.StartCommand("Isolate")
+    } catch {
+        ShowHint("선택한 개체에서 Isolate를 실행할 수 없습니다.")
     }
 }
 
@@ -774,6 +792,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
         catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
         catiaList.Add(, "PP", "스케치에서 Project 3D Elements 실행")
+        catiaList.Add(, "II", "선택한 개체 Isolate")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
