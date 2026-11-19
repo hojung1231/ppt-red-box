@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.22"
+appVersion := "1.0.23"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -190,13 +190,10 @@ HideCatiaContainerAndOpenSubtree() {
             throw Error("상위 Body 또는 Geometrical Set을 찾을 수 없습니다.")
         selection.Clear()
         selection.Add(container)
-        ; CATFrameHeader.CATNls identifies this contextual command as
-        ; OpenNewSubTree. Use its internal name instead of menu navigation.
-        catia.StartCommand("OpenNewSubTree")
-        selection.Clear()
-        selection.Add(container)
         selection.VisProperties.SetShow(1)
-        selection.Clear()
+        ; CATIA dispatches contextual commands asynchronously. Keep the
+        ; container selected and invoke the command after the hotkey ends.
+        SetTimer(OpenCatiaSubtree.Bind(catia, selection, container), -100)
     } catch as error {
         if selection && original {
             try {
@@ -205,6 +202,18 @@ HideCatiaContainerAndOpenSubtree() {
             }
         }
         ShowHint(error.Message)
+    }
+}
+
+OpenCatiaSubtree(catia, selection, container) {
+    KeyWait "h"
+    try {
+        selection.Clear()
+        selection.Add(container)
+        catia.StartCommand("OpenNewSubTree")
+        ; Leave this selection intact for CATIA's command event loop.
+    } catch {
+        ShowHint("서브트리를 열 수 없습니다. 선택된 컨테이너에서 Open Sub-Tree를 확인하세요.")
     }
 }
 
@@ -750,7 +759,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
         catiaList.Add(, "Ctrl+R", "Reorder Children 열기")
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
-        catiaList.Add(, "HH", "스케치: Construction/Standard · 3D: 상위 숨김+서브트리")
+        catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
         catiaList.Add(, "PP", "스케치에서 Project 3D Elements 실행")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
