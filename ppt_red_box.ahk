@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.12"
+appVersion := "1.0.13"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -106,8 +106,12 @@ MButton:: {
     CreateCatiaContainer("Geometrical Set")
     KeyWait "w"
 }
+^2:: {
+    ToggleCatiaVisibility("Sketch")
+    KeyWait "2"
+}
 ^1:: {
-    ToggleCatiaSolids()
+    ToggleCatiaVisibility("Body")
     KeyWait "1"
 }
 #HotIf
@@ -235,31 +239,42 @@ CreateCatiaContainer(kind) {
     }
 }
 
-ToggleCatiaSolids() {
+ToggleCatiaVisibility(kind) {
     try {
         catia := ComObjActive("CATIA.Application")
         document := catia.ActiveDocument
         part := document.Part
-        bodies := part.Bodies
-        if !bodies.Count
-            return
+
         selection := document.Selection
         saved := []
         Loop selection.Count2
             saved.Push(selection.Item2(A_Index).Value)
         try {
-            target := 0 ; Show all when every body is hidden.
-            Loop bodies.Count {
+            items := []
+            if kind = "Sketch" {
                 selection.Clear()
-                selection.Add(bodies.Item(A_Index))
+                selection.Search("CATPrtSearch.Sketch,all")
+                Loop selection.Count2
+                    items.Push(selection.Item2(A_Index).Value)
+            } else {
+                bodies := part.Bodies
+                Loop bodies.Count
+                    items.Push(bodies.Item(A_Index))
+            }
+            if !items.Length
+                return
+            target := 0 ; Show all when every item is hidden.
+            for item in items {
+                selection.Clear()
+                selection.Add(item)
                 state := Buffer(4, 0)
                 selection.VisProperties.GetShow(ComValue(0x4003, state.Ptr))
                 if NumGet(state, 0, "Int") = 0
-                    target := 1 ; Hide all when any body is shown.
+                    target := 1 ; Hide all when any item is shown.
             }
             selection.Clear()
-            Loop bodies.Count
-                selection.Add(bodies.Item(A_Index))
+            for item in items
+                selection.Add(item)
             selection.VisProperties.SetShow(target)
         } finally {
             selection.Clear()
@@ -666,6 +681,7 @@ ShowShortcutWindow(*) {
         window.AddText("w515", "CATIA V5 · Part Design / GSD")
         catiaList := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
         catiaList.Add(, "Ctrl+1", "모든 솔리드 Body 숨기기·표시")
+        catiaList.Add(, "Ctrl+2", "모든 스케치 숨기기·표시")
         catiaList.Add(, "Ctrl+Q", "새 Body 만들기")
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
         catiaList.Add(, "Ctrl+Shift+↑", "선택한 Body·Geometrical Set을 한 칸 위로")
