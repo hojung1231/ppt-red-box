@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.15"
+appVersion := "1.0.16"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -90,6 +90,11 @@ MButton:: {
 #HotIf
 
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~h:: {
+    if A_PriorHotkey = "~h" && A_TimeSincePriorHotkey < 350
+        HideCatiaContainerAndOpenSubtree()
+    KeyWait "h"
+}
 $f:: {
     if !ToggleCatiaSketchFix()
         Send "f"
@@ -116,6 +121,85 @@ $f:: {
     KeyWait "1"
 }
 #HotIf
+
+HideCatiaContainerAndOpenSubtree() {
+    selection := 0
+    original := 0
+    container := 0
+    hidden := false
+    oldState := Buffer(4, 0)
+    try {
+        catia := ComObjActive("CATIA.Application")
+        selection := catia.ActiveDocument.Selection
+        if selection.Count2 != 1 {
+            ShowHint("화면에서 솔리드 또는 면 하나를 선택하세요.")
+            return
+        }
+        original := selection.Item2(1).Value
+        candidate := original
+        Loop 30 {
+            selection.Clear()
+            selection.Add(candidate)
+            kind := selection.Item2(1).Type
+            if kind = "Body" || kind = "HybridBody" {
+                container := candidate
+                break
+            }
+            candidate := candidate.Parent
+        }
+        if !container
+            throw Error("상위 Body 또는 Geometrical Set을 찾을 수 없습니다.")
+        selection.VisProperties.GetShow(ComValue(0x4003, oldState.Ptr))
+        selection.VisProperties.SetShow(1)
+        hidden := true
+        ; Open Sub-Tree is a contextual command in CATIA V5.
+        Send "{AppsKey}"
+        menuWindow := WinWait("ahk_class #32768 ahk_exe CNEXT.exe", , 1)
+        if !menuWindow
+            throw Error("선택한 컨테이너의 우클릭 메뉴를 열 수 없습니다.")
+        menu := SendMessage(0x1E1, 0, 0, , "ahk_id " menuWindow) ; MN_GETHMENU
+        steps := 0
+        found := false
+        Loop DllCall("GetMenuItemCount", "Ptr", menu, "Int") {
+            index := A_Index - 1
+            label := Buffer(1024, 0)
+            DllCall("GetMenuStringW", "Ptr", menu, "UInt", index,
+                "Ptr", label.Ptr, "Int", 512, "UInt", 0x400)
+            text := StrReplace(StrGet(label, "UTF-16"), "&")
+            state := DllCall("GetMenuState", "Ptr", menu, "UInt", index, "UInt", 0x400, "UInt")
+            if state & 0x803 ; disabled, grayed, or separator
+                continue
+            if text = "Open Sub-Tree" {
+                found := true
+                break
+            }
+            steps++
+        }
+        if !found {
+            Send "{Esc}"
+            throw Error("우클릭 메뉴에서 Open Sub-Tree를 찾을 수 없습니다.")
+        }
+        Send "{Home}"
+        Loop steps
+            Send "{Down}"
+        Send "{Enter}"
+    } catch as error {
+        if hidden && container {
+            try {
+                selection.Clear()
+                selection.Add(container)
+                selection.VisProperties.SetShow(NumGet(oldState, 0, "Int"))
+            }
+        }
+        if selection && original {
+            try {
+                selection.Clear()
+                selection.Add(original)
+            }
+        }
+        ShowHint(error.Message)
+    }
+}
 
 ToggleCatiaSketchFix() {
     try {
@@ -646,6 +730,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
         catiaList.Add(, "Ctrl+R", "Reorder Children 열기")
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
+        catiaList.Add(, "HH", "상위 Body·Geometrical Set 숨김 + 서브트리 열기")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
