@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.14"
+appVersion := "1.0.15"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -90,6 +90,11 @@ MButton:: {
 #HotIf
 
 #HotIf WinActive("ahk_exe CNEXT.exe")
+$f:: {
+    if !ToggleCatiaSketchFix()
+        Send "f"
+    KeyWait "f"
+}
 ^r:: {
     OpenCatiaReorderChildren()
     KeyWait "r"
@@ -111,6 +116,65 @@ MButton:: {
     KeyWait "1"
 }
 #HotIf
+
+ToggleCatiaSketchFix() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        document := catia.ActiveDocument
+        part := document.Part
+        selection := document.Selection
+        if selection.Count2 != 1
+            return false
+        geometry := selection.Item2(1).Value
+        sketch := part.InWorkObject
+        ; These properties exist on a Sketch, not on a solid Body.
+        elements := sketch.GeometricElements
+        constraints := sketch.Constraints
+        reference := part.CreateReferenceFromObject(geometry)
+        belongsToSketch := false
+        Loop elements.Count {
+            element := elements.Item(A_Index)
+            elementReference := part.CreateReferenceFromObject(element)
+            if elementReference.DisplayName = reference.DisplayName {
+                belongsToSketch := true
+                break
+            }
+        }
+        if !belongsToSketch
+            return false
+    } catch {
+        return false
+    }
+    try {
+        fixes := []
+        Loop constraints.Count {
+            constraint := constraints.Item(A_Index)
+            if constraint.Type = 0 { ; catCstTypeReference (Fix)
+                constrained := constraint.GetConstraintElement(1)
+                if constrained.DisplayName = reference.DisplayName
+                    fixes.Push(constraint)
+            }
+        }
+        if fixes.Length {
+            try {
+                selection.Clear()
+                for constraint in fixes
+                    selection.Add(constraint)
+                selection.Delete()
+            } finally {
+                selection.Clear()
+                selection.Add(geometry)
+            }
+            ShowHint("Fix 해제")
+        } else {
+            constraints.AddMonoEltCst(0, reference)
+            ShowHint("Fix 적용")
+        }
+    } catch {
+        ShowHint("선택한 스케치 개체의 Fix 구속을 변경할 수 없습니다.")
+    }
+    return true
+}
 
 OpenCatiaReorderChildren() {
     try {
@@ -581,6 +645,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+Q", "새 Body 만들기")
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
         catiaList.Add(, "Ctrl+R", "Reorder Children 열기")
+        catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
