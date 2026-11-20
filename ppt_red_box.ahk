@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.30"
+appVersion := "1.0.31"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -93,6 +93,13 @@ MButton:: {
 #HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
 ~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~d:: {
+    if A_PriorHotkey = "~d" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "d"
+        StartCatiaSketchPoint()
+    }
+    KeyWait "d"
+}
 ~t:: {
     if A_PriorHotkey = "~t" && A_TimeSincePriorHotkey < 350 {
         KeyWait "t"
@@ -351,6 +358,19 @@ IsolateCatiaSelection() {
         catia.StartCommand("Isolate")
     } catch {
         ShowHint("선택한 개체에서 Isolate를 실행할 수 없습니다.")
+    }
+}
+
+StartCatiaSketchPoint() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() != "CS0WKS" {
+            ShowHint("스케치 편집 중에 DD를 사용하세요.")
+            return
+        }
+        catia.StartCommand("Point")
+    } catch {
+        ShowHint("스케치에서 Point by Clicking을 실행할 수 없습니다.")
     }
 }
 
@@ -903,6 +923,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "PP", "스케치: Project 3D Elements · 스케치 밖: Plane")
         catiaList.Add(, "II", "선택한 개체 Isolate")
         catiaList.Add(, "TT", "Thickness 실행")
+        catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
         catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
         catiaList.Add(, "FF", "상위 Body·Geometrical Set을 Define In Work Object")
         catiaList.ModifyCol(1, 125)
