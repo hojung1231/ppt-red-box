@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.27"
+appVersion := "1.0.28"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -93,6 +93,13 @@ MButton:: {
 #HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
 ~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~t:: {
+    if A_PriorHotkey = "~t" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "t"
+        StartCatiaThickness()
+    }
+    KeyWait "t"
+}
 ~r:: {
     if A_PriorHotkey = "~r" && A_TimeSincePriorHotkey < 350 {
         KeyWait "r"
@@ -322,6 +329,15 @@ OpenCatiaSubtree(catia, selection, container) {
         ; Leave this selection intact for CATIA's command event loop.
     } catch {
         ShowHint("서브트리를 열 수 없습니다. 선택된 컨테이너에서 Open Sub-Tree를 확인하세요.")
+    }
+}
+
+StartCatiaThickness() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        catia.StartCommand("Thickness")
+    } catch {
+        ShowHint("CATIA에서 Thickness를 실행할 수 없습니다.")
     }
 }
 
@@ -883,6 +899,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
         catiaList.Add(, "PP", "스케치에서 Project 3D Elements 실행")
         catiaList.Add(, "II", "선택한 개체 Isolate")
+        catiaList.Add(, "TT", "Thickness 실행")
         catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
         catiaList.Add(, "FF", "상위 Body·Geometrical Set을 Define In Work Object")
         catiaList.ModifyCol(1, 125)
