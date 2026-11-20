@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.31"
+appVersion := "1.0.32"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -93,6 +93,13 @@ MButton:: {
 #HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
 ~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~c:: {
+    if A_PriorHotkey = "~c" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "c"
+        ApplyCatiaSketchCoincidence()
+    }
+    KeyWait "c"
+}
 ~d:: {
     if A_PriorHotkey = "~d" && A_TimeSincePriorHotkey < 350 {
         KeyWait "d"
@@ -358,6 +365,41 @@ IsolateCatiaSelection() {
         catia.StartCommand("Isolate")
     } catch {
         ShowHint("선택한 개체에서 Isolate를 실행할 수 없습니다.")
+    }
+}
+
+ApplyCatiaSketchCoincidence() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() != "CS0WKS" {
+            ShowHint("스케치 편집 중에 CC를 사용하세요.")
+            return
+        }
+        document := catia.ActiveDocument
+        selection := document.Selection
+        if selection.Count2 != 2 {
+            ShowHint("일치시킬 점·선 등 두 개체를 선택하고 CC를 누르세요.")
+            return
+        }
+        constraints := document.Part.InWorkObject.Constraints
+        first := selection.Item2(1).Reference
+        second := selection.Item2(2).Reference
+        Loop constraints.Count {
+            constraint := constraints.Item(A_Index)
+            if constraint.Type != 2
+                continue
+            a := constraint.GetConstraintElement(1).DisplayName
+            b := constraint.GetConstraintElement(2).DisplayName
+            if (a = first.DisplayName && b = second.DisplayName)
+                || (a = second.DisplayName && b = first.DisplayName) {
+                ShowHint("이미 Coincidence 구속이 적용돼 있습니다.")
+                return
+            }
+        }
+        constraints.AddBiEltCst(2, first, second) ; catCstTypeOn
+        ShowHint("Coincidence 적용")
+    } catch {
+        ShowHint("선택한 두 개체에 Coincidence 구속을 적용할 수 없습니다.")
     }
 }
 
@@ -924,6 +966,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "II", "선택한 개체 Isolate")
         catiaList.Add(, "TT", "Thickness 실행")
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
+        catiaList.Add(, "CC", "스케치의 선택한 두 개체 Coincidence 적용")
         catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
         catiaList.Add(, "FF", "상위 Body·Geometrical Set을 Define In Work Object")
         catiaList.ModifyCol(1, 125)
