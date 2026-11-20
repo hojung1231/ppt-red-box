@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.29"
+appVersion := "1.0.30"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -114,7 +114,7 @@ MButton:: {
 }
 ~p:: {
     if A_PriorHotkey = "~p" && A_TimeSincePriorHotkey < 350
-        StartCatiaPlane()
+        StartCatiaPlaneOrProjection()
     KeyWait "p"
 }
 ~h:: {
@@ -354,12 +354,15 @@ IsolateCatiaSelection() {
     }
 }
 
-StartCatiaPlane() {
+StartCatiaPlaneOrProjection() {
     try {
         catia := ComObjActive("CATIA.Application")
-        catia.StartCommand("Plane")
+        if catia.GetWorkbenchId() = "CS0WKS"
+            catia.StartCommand("Project 3D Elements")
+        else
+            catia.StartCommand("Plane")
     } catch {
-        ShowHint("CATIA에서 Plane을 실행할 수 없습니다.")
+        ShowHint("CATIA에서 Plane 또는 Project 3D Elements를 실행할 수 없습니다.")
     }
 }
 
@@ -897,7 +900,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+R", "Reorder Children 열기")
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
         catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
-        catiaList.Add(, "PP", "Plane 실행")
+        catiaList.Add(, "PP", "스케치: Project 3D Elements · 스케치 밖: Plane")
         catiaList.Add(, "II", "선택한 개체 Isolate")
         catiaList.Add(, "TT", "Thickness 실행")
         catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
