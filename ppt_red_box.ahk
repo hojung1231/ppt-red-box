@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.33"
+appVersion := "1.0.34"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -93,10 +93,14 @@ MButton:: {
 #HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
 ~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+^e:: {
+    KeyWait "e"
+    StartCatiaGsdCommand("CATShapeDesignExtrude")
+}
 ~e:: {
     if A_PriorHotkey = "~e" && A_TimeSincePriorHotkey < 350 {
         KeyWait "e"
-        StartCatiaExtrude()
+        StartCatiaGsdCommand("CATShapeDesignExtractSMultiC")
     }
     KeyWait "e"
 }
@@ -375,16 +379,16 @@ IsolateCatiaSelection() {
     }
 }
 
-StartCatiaExtrude() {
+StartCatiaGsdCommand(command) {
     try {
         catia := ComObjActive("CATIA.Application")
         if catia.GetWorkbenchId() = "CS0WKS" {
-            ShowHint("스케치에서 나와 GSD에서 EE를 사용하세요.")
+            ShowHint("스케치에서 나와 GSD에서 사용하세요.")
             return
         }
-        catia.StartCommand("Extrude")
+        catia.StartCommand(command)
     } catch {
-        ShowHint("GSD에서 Extrude를 실행할 수 없습니다.")
+        ShowHint("GSD 명령을 실행할 수 없습니다: " command)
     }
 }
 
@@ -987,7 +991,8 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "TT", "Thickness 실행")
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
         catiaList.Add(, "CC", "스케치의 선택한 두 개체 Coincidence 적용")
-        catiaList.Add(, "EE", "GSD에서 Extrude 실행")
+        catiaList.Add(, "EE", "GSD에서 Multiple Extract 실행")
+        catiaList.Add(, "Ctrl+E", "Extruded Surface Definition 열기")
         catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
         catiaList.Add(, "FF", "상위 Body·Geometrical Set을 Define In Work Object")
         catiaList.ModifyCol(1, 125)
