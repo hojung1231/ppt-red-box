@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.26"
+appVersion := "1.0.27"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -11,6 +11,7 @@ updateStatus := ""
 outlineWeight := 1.5
 outlineColors := [0x0000FF, 0xFF0000, 0x00FFFF, 0x00FF00, 0x000000] ; Red, blue, yellow, green, black in Office BGR
 nativeFreeform := false
+catiaRemoveFaceRepeat := false
 
 if A_LineFile = A_ScriptFullPath
     InitializeApp()
@@ -89,7 +90,16 @@ MButton:: {
 ~Esc Up::StopTrackingFreeform()
 #HotIf
 
+#HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
+~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~r:: {
+    if A_PriorHotkey = "~r" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "r"
+        StartCatiaRemoveFaceRepeat()
+    }
+    KeyWait "r"
+}
 ~i:: {
     if A_PriorHotkey = "~i" && A_TimeSincePriorHotkey < 350
         IsolateCatiaSelection()
@@ -108,8 +118,12 @@ MButton:: {
     KeyWait "h"
 }
 $f:: {
-    if !ToggleCatiaSketchFix()
+    if A_PriorHotkey = "$f" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "f"
+        DefineCatiaSelectedContainer()
+    } else if !ToggleCatiaSketchFix() {
         Send "f"
+    }
     KeyWait "f"
 }
 ^r:: {
@@ -137,6 +151,108 @@ $f:: {
     KeyWait "1"
 }
 #HotIf
+
+FindCatiaContainer(original) {
+    container := 0
+    candidate := original
+    Loop 30 {
+        ; Parent paths include collections such as HybridShapes, which
+        ; CATIA cannot add to Selection. Inspect containers directly.
+        try {
+            shapes := candidate.Shapes
+            sketches := candidate.Sketches
+            container := candidate ; Body
+        }
+        if !container {
+            try {
+                shapes := candidate.HybridShapes
+                sketches := candidate.HybridSketches
+                container := candidate ; HybridBody / Geometrical Set
+            }
+        }
+        if container
+            break
+        candidate := candidate.Parent
+    }
+    if !container
+        throw Error("상위 Body 또는 Geometrical Set을 찾을 수 없습니다.")
+    return container
+}
+
+DefineCatiaSelectedContainer() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        document := catia.ActiveDocument
+        selection := document.Selection
+        if selection.Count2 != 1 {
+            ShowHint("화면 또는 트리에서 개체 하나를 선택하세요.")
+            return
+        }
+        container := FindCatiaContainer(selection.Item2(1).Value)
+        document.Part.InWorkObject := container
+        ShowHint(container.Name " · Define In Work Object")
+    } catch {
+        ShowHint("선택한 개체의 Body 또는 Geometrical Set을 작업 대상으로 지정할 수 없습니다.")
+    }
+}
+
+StartCatiaRemoveFaceRepeat() {
+    global catiaRemoveFaceRepeat
+    StopCatiaRemoveFaceRepeat()
+    try {
+        catia := ComObjActive("CATIA.Application")
+        document := catia.ActiveDocument
+        part := document.Part
+        catiaRemoveFaceRepeat := {document: document, waiting: true,
+            deadline: A_TickCount + 5000}
+        catia.StartCommand("Remove Face")
+        SetTimer WatchCatiaRemoveFace, 150
+    } catch {
+        StopCatiaRemoveFaceRepeat()
+        ShowHint("CATIA CATPart에서 Remove Face를 실행할 수 없습니다.")
+    }
+}
+
+WatchCatiaRemoveFace() {
+    global catiaRemoveFaceRepeat
+    if !catiaRemoveFaceRepeat
+        return
+    dialog := WinExist("Remove Face Definition ahk_exe CNEXT.exe")
+        || WinExist("Remove Face/Edge Definition ahk_exe CNEXT.exe")
+    if dialog {
+        catiaRemoveFaceRepeat.waiting := false
+        return
+    }
+    if catiaRemoveFaceRepeat.waiting {
+        if A_TickCount >= catiaRemoveFaceRepeat.deadline {
+            StopCatiaRemoveFaceRepeat()
+            ShowHint("Remove Face 창을 확인할 수 없어 연속 실행을 종료했습니다.")
+        }
+        return
+    }
+    if !WinActive("ahk_exe CNEXT.exe") {
+        StopCatiaRemoveFaceRepeat()
+        return
+    }
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if ComObjValue(catia.ActiveDocument) != ComObjValue(catiaRemoveFaceRepeat.document) {
+            StopCatiaRemoveFaceRepeat()
+            return
+        }
+        catiaRemoveFaceRepeat.waiting := true
+        catiaRemoveFaceRepeat.deadline := A_TickCount + 5000
+        catia.StartCommand("Remove Face")
+    } catch {
+        StopCatiaRemoveFaceRepeat()
+    }
+}
+
+StopCatiaRemoveFaceRepeat(*) {
+    global catiaRemoveFaceRepeat
+    SetTimer WatchCatiaRemoveFace, 0
+    catiaRemoveFaceRepeat := false
+}
 
 ToggleCatiaConstruction() {
     try {
@@ -179,28 +295,7 @@ HideCatiaContainerAndOpenSubtree() {
             return
         }
         original := selection.Item2(1).Value
-        candidate := original
-        Loop 30 {
-            ; Parent paths include collections such as HybridShapes, which
-            ; CATIA cannot add to Selection. Inspect containers directly.
-            try {
-                shapes := candidate.Shapes
-                sketches := candidate.Sketches
-                container := candidate ; Body
-            }
-            if !container {
-                try {
-                    shapes := candidate.HybridShapes
-                    sketches := candidate.HybridSketches
-                    container := candidate ; HybridBody / Geometrical Set
-                }
-            }
-            if container
-                break
-            candidate := candidate.Parent
-        }
-        if !container
-            throw Error("상위 Body 또는 Geometrical Set을 찾을 수 없습니다.")
+        container := FindCatiaContainer(original)
         selection.Clear()
         selection.Add(container)
         selection.VisProperties.SetShow(1)
@@ -788,6 +883,8 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
         catiaList.Add(, "PP", "스케치에서 Project 3D Elements 실행")
         catiaList.Add(, "II", "선택한 개체 Isolate")
+        catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
+        catiaList.Add(, "FF", "상위 Body·Geometrical Set을 Define In Work Object")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
