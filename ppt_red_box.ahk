@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.34"
+appVersion := "1.0.35"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -655,28 +655,23 @@ InsertTextbox() {
 }
 
 CreateTextbox(shapes, point, slideWidth, slideHeight) {
-    pointsPerCentimeter := 72 / 2.54
-    width := 4 * pointsPerCentimeter
-    height := 0.64 * pointsPerCentimeter
-    left := Max(0, Min(point.x, slideWidth - width))
-    top := Max(0, Min(point.y, slideHeight - height))
-    shape := shapes.AddTextbox(1, left, top, width, height)
+    left := Max(0, Min(point.x, slideWidth - 1))
+    top := Max(0, Min(point.y, slideHeight - 1))
+    ; AddTextbox requires initial dimensions; AutoSize replaces this seed
+    ; size as text is entered, like a click-created native text box.
+    shape := shapes.AddTextbox(1, left, top, 1, 1)
     try {
-        fill := shape.Fill
-        fill.Solid()
-        fill.Visible := -1
-        fill.ForeColor.RGB := 0xFFFFFF
-        fill.Transparency := 0.30
-
+        shape.Fill.Visible := 0
+        shape.Line.Visible := 0
         frame := shape.TextFrame
-        frame.AutoSize := 0
-        frame.WordWrap := -1
-        shape.Width := width
-        shape.Height := height
+        frame.WordWrap := 0
+        frame.AutoSize := 1 ; ppAutoSizeShapeToFitText
+        frame.TextRange.ParagraphFormat.Alignment := 2 ; ppAlignCenter
         font := frame.TextRange.Font
         SetNanumFont(font)
         font.Size := 12
         font.Color.RGB := 0x000000
+        ApplyWhiteGlow(shape.TextFrame2.TextRange.Font.Glow)
     } catch as error {
         shape.Delete()
         throw error
@@ -968,7 +963,7 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트 글꼴 → 나눔바른고딕 OTF"],
-            ["Ctrl+Shift+X", "텍스트 상자 → 4 × 0.64cm, 나눔바른고딕 OTF 12pt"],
+            ["Ctrl+Shift+X", "텍스트 상자 → 가운데 정렬, 자동 크기, 글자 네온"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
             ["Ctrl+Shift+휠", "선 두께 → 위로 0.25pt 증가, 아래로 0.25pt 감소"]
         ]
