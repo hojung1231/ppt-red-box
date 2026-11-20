@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.25"
+appVersion := "1.0.26"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -144,32 +144,27 @@ ToggleCatiaConstruction() {
         selection := catia.ActiveDocument.Selection
         if !selection.Count2
             return false
-        elements := []
         Loop selection.Count2 {
             geometry := selection.Item2(A_Index).Value
-            ; Read every original state before modifying the selection.
+            ; Identify sketch geometry without changing individual states.
             construction := geometry.Construction
-            elements.Push({geometry: geometry, construction: construction})
         }
     } catch {
         return false
     }
-    changed := []
-    try {
-        for element in elements {
-            element.geometry.Construction := !element.construction
-            changed.Push(element)
-        }
-        if elements.Length = 1
-            ShowHint(elements[1].construction ? "Standard Element" : "Construction Element")
-        else
-            ShowHint(elements.Length "개 개체의 Construction/Standard 전환")
-    } catch {
-        for element in changed
-            try element.geometry.Construction := element.construction
-        ShowHint("선택한 스케치 개체의 Construction/Standard를 변경할 수 없습니다.")
-    }
+    SetTimer(RunCatiaConstructionCommand.Bind(catia), -100)
     return true
+}
+
+RunCatiaConstructionCommand(catia) {
+    KeyWait "h"
+    try {
+        ; Use the Sketch Tools command so CATIA handles mixed selections
+        ; and the relationship between curves and their points.
+        catia.StartCommand("Construction/Standard Element")
+    } catch {
+        ShowHint("スケ치의 Construction/Standard Element를 실행할 수 없습니다.")
+    }
 }
 
 HideCatiaContainerAndOpenSubtree() {
