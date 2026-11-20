@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.36"
+appVersion := "1.0.37"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -671,7 +671,7 @@ CreateTextbox(shapes, point, slideWidth, slideHeight) {
         SetNanumFont(font)
         font.Size := 12
         font.Color.RGB := 0x000000
-        ApplyWhiteGlow(shape.TextFrame2.TextRange.Font.Glow, 10, 0.30)
+        ApplyWhiteGlow(shape.TextFrame2.TextRange.Font.Glow, 10, 0.10)
     } catch as error {
         shape.Delete()
         throw error
