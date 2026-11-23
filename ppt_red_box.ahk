@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.42"
+appVersion := "1.0.43"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -93,6 +93,13 @@ MButton:: {
 #HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
 ~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~x:: {
+    if A_PriorHotkey = "~x" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "x"
+        StartCatiaGsdCommand("Extrapolate")
+    }
+    KeyWait "x"
+}
 ~s:: {
     if A_PriorHotkey = "~s" && A_TimeSincePriorHotkey < 350 {
         KeyWait "s"
@@ -1069,6 +1076,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "VV", "스케치 Normal View · 반복하면 방향 반전")
         catiaList.Add(, "CC", "스케치의 선택한 두 개체 Coincidence 적용")
         catiaList.Add(, "EE", "GSD에서 Multiple Extract 실행")
+        catiaList.Add(, "XX", "GSD에서 Extrapolate 실행")
         catiaList.Add(, "Ctrl+E", "Extruded Surface Definition 열기")
         catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
         catiaList.Add(, "FF", "상위 Body·Geometrical Set을 Define In Work Object")
