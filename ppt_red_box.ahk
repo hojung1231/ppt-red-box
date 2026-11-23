@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.44"
+appVersion := "1.0.45"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -362,9 +362,20 @@ HideCatiaContainerAndOpenSubtree() {
         }
         original := selection.Item2(1).Value
         container := FindCatiaContainer(original)
+        hideTarget := container
+        try {
+            ; Bodies under an OGS can ignore their own No Show property.
+            ; Their terminal solid feature controls the displayed result.
+            orderedSketches := container.Parent.Parent.OrderedSketches
+            shapes := container.Shapes
+            if shapes.Count
+                hideTarget := shapes.Item(shapes.Count)
+        }
+        selection.Clear()
+        selection.Add(hideTarget)
+        selection.VisProperties.SetShow(1)
         selection.Clear()
         selection.Add(container)
-        selection.VisProperties.SetShow(1)
         ; CATIA dispatches contextual commands asynchronously. Keep the
         ; container selected and invoke the command after the hotkey ends.
         SetTimer(OpenCatiaSubtree.Bind(catia, selection, container), -100)
