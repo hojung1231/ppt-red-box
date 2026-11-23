@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.40"
+appVersion := "1.0.41"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -154,8 +154,10 @@ MButton:: {
     KeyWait "r"
 }
 ~i:: {
-    if A_PriorHotkey = "~i" && A_TimeSincePriorHotkey < 350
-        IsolateCatiaSelection()
+    if A_PriorHotkey = "~i" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "i"
+        StartCatiaIntersectOrIsolate()
+    }
     KeyWait "i"
 }
 ~p:: {
@@ -384,6 +386,18 @@ StartCatiaThickness() {
         catia.StartCommand("Thickness")
     } catch {
         ShowHint("CATIA에서 Thickness를 실행할 수 없습니다.")
+    }
+}
+
+StartCatiaIntersectOrIsolate() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() = "CS0WKS"
+            catia.StartCommand("Intersect 3D Elements")
+        else
+            IsolateCatiaSelection()
+    } catch {
+        ShowHint("Intersect 3D Elements 또는 Isolate를 실행할 수 없습니다.")
     }
 }
 
@@ -1047,7 +1061,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
         catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
         catiaList.Add(, "PP", "스케치: Project 3D Elements · 스케치 밖: Plane")
-        catiaList.Add(, "II", "선택한 개체 Isolate")
+        catiaList.Add(, "II", "스케치: Intersect 3D Elements · 스케치 밖: Isolate")
         catiaList.Add(, "TT", "Thickness 실행")
         catiaList.Add(, "SS", "Part Design에서 솔리드 Split 실행")
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
