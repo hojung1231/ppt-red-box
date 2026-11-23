@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.39"
+appVersion := "1.0.40"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -93,6 +93,13 @@ MButton:: {
 #HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
 ~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~s:: {
+    if A_PriorHotkey = "~s" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "s"
+        StartCatiaSolidSplit()
+    }
+    KeyWait "s"
+}
 ~v:: {
     if A_PriorHotkey = "~v" && A_TimeSincePriorHotkey < 350 {
         KeyWait "v"
@@ -438,6 +445,19 @@ ApplyCatiaSketchCoincidence() {
         ShowHint("Coincidence 적용")
     } catch {
         ShowHint("선택한 두 개체에 Coincidence 구속을 적용할 수 없습니다.")
+    }
+}
+
+StartCatiaSolidSplit() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() != "PrtCfg" {
+            ShowHint("솔리드 Split은 Part Design에서 SS를 사용하세요.")
+            return
+        }
+        catia.StartCommand("Split")
+    } catch {
+        ShowHint("Part Design에서 솔리드 Split을 실행할 수 없습니다.")
     }
 }
 
@@ -1029,6 +1049,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "PP", "스케치: Project 3D Elements · 스케치 밖: Plane")
         catiaList.Add(, "II", "선택한 개체 Isolate")
         catiaList.Add(, "TT", "Thickness 실행")
+        catiaList.Add(, "SS", "Part Design에서 솔리드 Split 실행")
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
         catiaList.Add(, "VV", "스케치 Normal View · 반복하면 방향 반전")
