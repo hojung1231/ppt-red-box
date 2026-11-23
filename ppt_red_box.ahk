@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.37"
+appVersion := "1.0.38"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -95,12 +95,12 @@ MButton:: {
 #HotIf WinActive("ahk_exe CNEXT.exe")
 ^e:: {
     KeyWait "e"
-    StartCatiaGsdCommand("CATShapeDesignExtrude")
+    StartCatiaGsdCommand("Extrude")
 }
 ~e:: {
     if A_PriorHotkey = "~e" && A_TimeSincePriorHotkey < 350 {
         KeyWait "e"
-        StartCatiaGsdCommand("CATShapeDesignExtractSMultiC")
+        StartCatiaGsdCommand("Multiple Extract")
     }
     KeyWait "e"
 }
@@ -514,9 +514,15 @@ ToggleCatiaSketchFix() {
 OpenCatiaReorderChildren() {
     try {
         catia := ComObjActive("CATIA.Application")
+        document := catia.ActiveDocument
+        part := document.Part
+        selection := document.Selection
+        selection.Clear()
+        selection.Add(part)
+        ; Keep the root selected while CATIA opens its contextual command.
         catia.StartCommand("Reorder Children")
     } catch {
-        ShowHint("CATIA 트리에서 Part 또는 Geometrical Set을 선택하고 다시 시도하세요.")
+        ShowHint("CATIA의 CATPart를 열고 다시 시도하세요.")
     }
 }
 
@@ -978,7 +984,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+3", "3D 점·선·곡선 숨기기·표시 (교차·투영 포함)")
         catiaList.Add(, "Ctrl+Q", "새 Body 만들기")
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
-        catiaList.Add(, "Ctrl+R", "Reorder Children 열기")
+        catiaList.Add(, "Ctrl+R", "최상위 Part의 Reorder Children 열기")
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
         catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
         catiaList.Add(, "PP", "스케치: Project 3D Elements · 스케치 밖: Plane")
