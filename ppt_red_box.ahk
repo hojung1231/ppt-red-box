@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.38"
+appVersion := "1.0.39"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -93,6 +93,20 @@ MButton:: {
 #HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
 ~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~v:: {
+    if A_PriorHotkey = "~v" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "v"
+        StartCatiaSketchNormalView()
+    }
+    KeyWait "v"
+}
+~l:: {
+    if A_PriorHotkey = "~l" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "l"
+        StartCatiaLine()
+    }
+    KeyWait "l"
+}
 ^e:: {
     KeyWait "e"
     StartCatiaGsdCommand("Extrude")
@@ -424,6 +438,31 @@ ApplyCatiaSketchCoincidence() {
         ShowHint("Coincidence 적용")
     } catch {
         ShowHint("선택한 두 개체에 Coincidence 구속을 적용할 수 없습니다.")
+    }
+}
+
+StartCatiaSketchNormalView() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() != "CS0WKS" {
+            ShowHint("스케치 편집 중에 VV를 사용하세요.")
+            return
+        }
+        catia.StartCommand("Normal View")
+    } catch {
+        ShowHint("스케치에서 Normal View를 실행할 수 없습니다.")
+    }
+}
+
+StartCatiaLine() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() = "CS0WKS"
+            catia.StartCommand("Line")
+        else
+            catia.StartCommand("Line...")
+    } catch {
+        ShowHint("CATIA에서 Line을 실행할 수 없습니다.")
     }
 }
 
@@ -991,6 +1030,8 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "II", "선택한 개체 Isolate")
         catiaList.Add(, "TT", "Thickness 실행")
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
+        catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
+        catiaList.Add(, "VV", "스케치 Normal View · 반복하면 방향 반전")
         catiaList.Add(, "CC", "스케치의 선택한 두 개체 Coincidence 적용")
         catiaList.Add(, "EE", "GSD에서 Multiple Extract 실행")
         catiaList.Add(, "Ctrl+E", "Extruded Surface Definition 열기")
