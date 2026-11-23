@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.52"
+appVersion := "1.0.53"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -210,10 +210,14 @@ MButton:: {
     }
     KeyWait "h"
 }
+^f:: {
+    KeyWait "f"
+    DefineCatiaSelectedContainer()
+}
 $f:: {
     if A_PriorHotkey = "$f" && A_TimeSincePriorHotkey < 350 {
         KeyWait "f"
-        DefineCatiaSelectedContainer()
+        StartCatiaGsdCommand("Fill")
     } else if !ToggleCatiaSketchFix() {
         Send "f"
     }
@@ -1237,7 +1241,8 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "JJ", "GSD에서 Join 실행")
         catiaList.Add(, "Ctrl+E", "Extruded Surface Definition 열기")
         catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
-        catiaList.Add(, "FF", "상위 Body·Geometrical Set을 Define In Work Object")
+        catiaList.Add(, "Ctrl+F", "상위 Body·Geometrical Set을 Define In Work Object")
+        catiaList.Add(, "FF", "GSD에서 Fill 실행")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
