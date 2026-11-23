@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.41"
+appVersion := "1.0.42"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -96,7 +96,7 @@ MButton:: {
 ~s:: {
     if A_PriorHotkey = "~s" && A_TimeSincePriorHotkey < 350 {
         KeyWait "s"
-        StartCatiaSolidSplit()
+        StartCatiaSplit()
     }
     KeyWait "s"
 }
@@ -462,16 +462,16 @@ ApplyCatiaSketchCoincidence() {
     }
 }
 
-StartCatiaSolidSplit() {
+StartCatiaSplit() {
     try {
         catia := ComObjActive("CATIA.Application")
-        if catia.GetWorkbenchId() != "PrtCfg" {
-            ShowHint("솔리드 Split은 Part Design에서 SS를 사용하세요.")
+        if catia.GetWorkbenchId() = "CS0WKS" {
+            ShowHint("스케치에서 나와 Part Design 또는 GSD에서 SS를 사용하세요.")
             return
         }
         catia.StartCommand("Split")
     } catch {
-        ShowHint("Part Design에서 솔리드 Split을 실행할 수 없습니다.")
+        ShowHint("현재 워크벤치에서 Split을 실행할 수 없습니다.")
     }
 }
 
@@ -1063,7 +1063,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "PP", "스케치: Project 3D Elements · 스케치 밖: Plane")
         catiaList.Add(, "II", "스케치: Intersect 3D Elements · 스케치 밖: Isolate")
         catiaList.Add(, "TT", "Thickness 실행")
-        catiaList.Add(, "SS", "Part Design에서 솔리드 Split 실행")
+        catiaList.Add(, "SS", "Part Design: 솔리드 Split · GSD: 서피스 Split")
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
         catiaList.Add(, "VV", "스케치 Normal View · 반복하면 방향 반전")
