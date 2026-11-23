@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.45"
+appVersion := "1.0.46"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -179,7 +179,7 @@ MButton:: {
 ~h:: {
     if A_PriorHotkey = "~h" && A_TimeSincePriorHotkey < 350 {
         if !ToggleCatiaConstruction()
-            HideCatiaContainerAndOpenSubtree()
+            ToggleCatiaContainerAndOpenSubtree()
     }
     KeyWait "h"
 }
@@ -349,7 +349,7 @@ RunCatiaConstructionCommand(catia) {
     }
 }
 
-HideCatiaContainerAndOpenSubtree() {
+ToggleCatiaContainerAndOpenSubtree() {
     selection := 0
     original := 0
     container := 0
@@ -357,7 +357,7 @@ HideCatiaContainerAndOpenSubtree() {
         catia := ComObjActive("CATIA.Application")
         selection := catia.ActiveDocument.Selection
         if selection.Count2 != 1 {
-            ShowHint("화면에서 솔리드 또는 면 하나를 선택하세요.")
+            ShowHint("화면의 솔리드·면 또는 트리의 Body·Geometrical Set 하나를 선택하세요.")
             return
         }
         original := selection.Item2(1).Value
@@ -373,7 +373,10 @@ HideCatiaContainerAndOpenSubtree() {
         }
         selection.Clear()
         selection.Add(hideTarget)
-        selection.VisProperties.SetShow(1)
+        state := Buffer(4, 0)
+        selection.VisProperties.GetShow(ComValue(0x4003, state.Ptr))
+        nextState := NumGet(state, 0, "Int") = 1 ? 0 : 1
+        selection.VisProperties.SetShow(nextState)
         selection.Clear()
         selection.Add(container)
         ; CATIA dispatches contextual commands asynchronously. Keep the
@@ -1090,7 +1093,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "Ctrl+W", "새 Geometrical Set 만들기")
         catiaList.Add(, "Ctrl+R", "최상위 Part의 Reorder Children 열기")
         catiaList.Add(, "F", "스케치의 선택 개체 Fix 적용·해제")
-        catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
+        catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: 숨김·표시+서브트리")
         catiaList.Add(, "PP", "스케치: Project 3D Elements · 스케치 밖: Plane")
         catiaList.Add(, "II", "스케치: Intersect 3D Elements · 스케치 밖: Isolate")
         catiaList.Add(, "Ctrl+T", "Thickness 실행")
