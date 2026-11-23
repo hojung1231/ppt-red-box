@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.48"
+appVersion := "1.0.49"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -93,6 +93,13 @@ MButton:: {
 #HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
 ~Esc::StopCatiaRemoveFaceRepeat()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+~q:: {
+    if A_PriorHotkey = "~q" && A_TimeSincePriorHotkey < 350 {
+        KeyWait "q"
+        StartCatiaQuickTrim()
+    }
+    KeyWait "q"
+}
 ~j:: {
     if A_PriorHotkey = "~j" && A_TimeSincePriorHotkey < 350 {
         KeyWait "j"
@@ -468,6 +475,44 @@ StartCatiaGsdCommand(command) {
     }
 }
 
+StartCatiaQuickTrim() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() != "CS0WKS" {
+            ShowHint("스케치 편집 중에 QQ를 사용하세요.")
+            return
+        }
+        catia.StartCommand("Quick Trim")
+    } catch {
+        ShowHint("스케치에서 Quick Trim을 실행할 수 없습니다.")
+    }
+}
+
+FindCatiaSelectedSketch(part, selection) {
+    try {
+        sketch := part.InWorkObject
+        elements := sketch.GeometricElements
+        constraints := sketch.Constraints
+        return sketch
+    }
+    ; InWorkObject may remain the containing Geometrical Set during
+    ; sketch editing. Follow selected geometry back to its Sketch.
+    Loop selection.Count2 {
+        candidate := selection.Item2(A_Index).Value
+        Loop 20 {
+            try {
+                elements := candidate.GeometricElements
+                constraints := candidate.Constraints
+                return candidate
+            }
+            try candidate := candidate.Parent
+            catch
+                break
+        }
+    }
+    throw Error("선택 개체가 속한 스케치를 찾을 수 없습니다.")
+}
+
 ApplyCatiaSketchCoincidence() {
     try {
         catia := ComObjActive("CATIA.Application")
@@ -481,7 +526,8 @@ ApplyCatiaSketchCoincidence() {
             ShowHint("일치시킬 점·선 등 두 개체를 선택하고 CC를 누르세요.")
             return
         }
-        constraints := document.Part.InWorkObject.Constraints
+        sketch := FindCatiaSelectedSketch(document.Part, selection)
+        constraints := sketch.Constraints
         first := selection.Item2(1).Reference
         second := selection.Item2(2).Reference
         Loop constraints.Count {
@@ -1118,6 +1164,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
         catiaList.Add(, "VV", "스케치 Normal View · 반복하면 방향 반전")
         catiaList.Add(, "CC", "스케치의 선택한 두 개체 Coincidence 적용")
+        catiaList.Add(, "QQ", "스케치에서 Quick Trim 실행")
         catiaList.Add(, "EE", "GSD에서 Multiple Extract 실행")
         catiaList.Add(, "XX", "GSD에서 Extrapolate 실행")
         catiaList.Add(, "JJ", "GSD에서 Join 실행")
