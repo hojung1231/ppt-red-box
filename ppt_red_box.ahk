@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.46"
+appVersion := "1.0.47"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -499,13 +499,21 @@ ApplyCatiaSketchCoincidence() {
 StartCatiaSplit() {
     try {
         catia := ComObjActive("CATIA.Application")
-        if catia.GetWorkbenchId() = "CS0WKS" {
+        workbench := catia.GetWorkbenchId()
+        if workbench = "CS0WKS" {
             ShowHint("스케치에서 나와 Part Design 또는 GSD에서 SS를 사용하세요.")
             return
         }
-        catia.StartCommand("Split")
+        if workbench = "PrtCfg" {
+            ; Both workbenches register "Split". Select the Part Design
+            ; menu explicitly to avoid dispatching the GSD surface command.
+            hwnd := WinActive("ahk_exe CNEXT.exe")
+            MenuSelect("ahk_id " hwnd, , "Insert", "Surface-Based Features", "Split...")
+        } else {
+            catia.StartCommand("Split")
+        }
     } catch {
-        ShowHint("현재 워크벤치에서 Split을 실행할 수 없습니다.")
+        ShowHint("Split을 실행할 수 없습니다. Insert → Surface-Based Features → Split 메뉴를 확인하세요.")
     }
 }
 
