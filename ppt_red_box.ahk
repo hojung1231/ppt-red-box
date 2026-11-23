@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.43"
+appVersion := "1.0.44"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -146,10 +146,14 @@ MButton:: {
     }
     KeyWait "d"
 }
+^t:: {
+    KeyWait "t"
+    StartCatiaThickness()
+}
 ~t:: {
     if A_PriorHotkey = "~t" && A_TimeSincePriorHotkey < 350 {
         KeyWait "t"
-        StartCatiaThickness()
+        StartCatiaThickSurface()
     }
     KeyWait "t"
 }
@@ -384,6 +388,15 @@ OpenCatiaSubtree(catia, selection, container) {
         ; Leave this selection intact for CATIA's command event loop.
     } catch {
         ShowHint("서브트리를 열 수 없습니다. 선택된 컨테이너에서 Open Sub-Tree를 확인하세요.")
+    }
+}
+
+StartCatiaThickSurface() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        catia.StartCommand("Thick Surface")
+    } catch {
+        ShowHint("CATIA에서 Thick Surface를 실행할 수 없습니다.")
     }
 }
 
@@ -1069,7 +1082,8 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "HH", "스케치: 보조선 전환 · 3D/트리: Body·셋 숨김+서브트리")
         catiaList.Add(, "PP", "스케치: Project 3D Elements · 스케치 밖: Plane")
         catiaList.Add(, "II", "스케치: Intersect 3D Elements · 스케치 밖: Isolate")
-        catiaList.Add(, "TT", "Thickness 실행")
+        catiaList.Add(, "Ctrl+T", "Thickness 실행")
+        catiaList.Add(, "TT", "Thick Surface · 서피스에 두께를 줘 솔리드 생성")
         catiaList.Add(, "SS", "Part Design: 솔리드 Split · GSD: 서피스 Split")
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
