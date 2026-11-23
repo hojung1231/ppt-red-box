@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.49"
+appVersion := "1.0.50"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -12,6 +12,7 @@ outlineWeight := 1.5
 outlineColors := [0x0000FF, 0xFF0000, 0x00FFFF, 0x00FF00, 0x000000] ; Red, blue, yellow, green, black in Office BGR
 nativeFreeform := false
 catiaRemoveFaceRepeat := false
+catiaQuickTrimRepeat := false
 
 if A_LineFile = A_ScriptFullPath
     InitializeApp()
@@ -90,8 +91,13 @@ MButton:: {
 ~Esc Up::StopTrackingFreeform()
 #HotIf
 
-#HotIf catiaRemoveFaceRepeat && WinActive("ahk_exe CNEXT.exe")
-~Esc::StopCatiaRemoveFaceRepeat()
+#HotIf (catiaRemoveFaceRepeat || catiaQuickTrimRepeat) && WinActive("ahk_exe CNEXT.exe")
+~Esc:: {
+    StopCatiaRemoveFaceRepeat()
+    StopCatiaQuickTrimRepeat()
+}
+#HotIf catiaQuickTrimRepeat && WinActive("ahk_exe CNEXT.exe")
+~LButton Up::QueueCatiaQuickTrim()
 #HotIf WinActive("ahk_exe CNEXT.exe")
 ~q:: {
     if A_PriorHotkey = "~q" && A_TimeSincePriorHotkey < 350 {
@@ -476,16 +482,60 @@ StartCatiaGsdCommand(command) {
 }
 
 StartCatiaQuickTrim() {
+    global catiaQuickTrimRepeat
+    StopCatiaQuickTrimRepeat()
     try {
         catia := ComObjActive("CATIA.Application")
         if catia.GetWorkbenchId() != "CS0WKS" {
             ShowHint("스케치 편집 중에 QQ를 사용하세요.")
             return
         }
+        MouseGetPos(, , &window, &viewControl, 2)
+        catiaQuickTrimRepeat := {document: catia.ActiveDocument,
+            window: window, viewControl: viewControl}
         catia.StartCommand("Quick Trim")
     } catch {
+        StopCatiaQuickTrimRepeat()
         ShowHint("스케치에서 Quick Trim을 실행할 수 없습니다.")
     }
+}
+
+QueueCatiaQuickTrim() {
+    if !catiaQuickTrimRepeat
+        return
+    MouseGetPos(, , &window, &viewControl, 2)
+    if window != catiaQuickTrimRepeat.window
+        || viewControl != catiaQuickTrimRepeat.viewControl {
+        StopCatiaQuickTrimRepeat()
+        return
+    }
+    SetTimer RearmCatiaQuickTrim, -150
+}
+
+RearmCatiaQuickTrim() {
+    if !catiaQuickTrimRepeat
+        return
+    if !WinActive("ahk_id " catiaQuickTrimRepeat.window) {
+        StopCatiaQuickTrimRepeat()
+        return
+    }
+    try {
+        catia := ComObjActive("CATIA.Application")
+        if catia.GetWorkbenchId() != "CS0WKS"
+            || ComObjValue(catia.ActiveDocument) != ComObjValue(catiaQuickTrimRepeat.document) {
+            StopCatiaQuickTrimRepeat()
+            return
+        }
+        catia.StartCommand("Quick Trim")
+    } catch {
+        StopCatiaQuickTrimRepeat()
+    }
+}
+
+StopCatiaQuickTrimRepeat(*) {
+    global catiaQuickTrimRepeat
+    SetTimer RearmCatiaQuickTrim, 0
+    catiaQuickTrimRepeat := false
 }
 
 FindCatiaSelectedSketch(part, selection) {
@@ -1164,7 +1214,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
         catiaList.Add(, "VV", "스케치 Normal View · 반복하면 방향 반전")
         catiaList.Add(, "CC", "스케치의 선택한 두 개체 Coincidence 적용")
-        catiaList.Add(, "QQ", "스케치에서 Quick Trim 실행")
+        catiaList.Add(, "QQ", "스케치 Quick Trim 연속 실행 · Esc로 종료")
         catiaList.Add(, "EE", "GSD에서 Multiple Extract 실행")
         catiaList.Add(, "XX", "GSD에서 Extrapolate 실행")
         catiaList.Add(, "JJ", "GSD에서 Join 실행")
