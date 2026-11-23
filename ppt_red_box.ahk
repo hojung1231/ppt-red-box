@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.50"
+appVersion := "1.0.51"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -99,6 +99,10 @@ MButton:: {
 #HotIf catiaQuickTrimRepeat && WinActive("ahk_exe CNEXT.exe")
 ~LButton Up::QueueCatiaQuickTrim()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+$Space:: {
+    KeyWait "Space"
+    StartCatiaMeasureBetween()
+}
 ~q:: {
     if A_PriorHotkey = "~q" && A_TimeSincePriorHotkey < 350 {
         KeyWait "q"
@@ -422,6 +426,15 @@ OpenCatiaSubtree(catia, selection, container) {
         ; Leave this selection intact for CATIA's command event loop.
     } catch {
         ShowHint("서브트리를 열 수 없습니다. 선택된 컨테이너에서 Open Sub-Tree를 확인하세요.")
+    }
+}
+
+StartCatiaMeasureBetween() {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        catia.StartCommand("Measure Between")
+    } catch {
+        ShowHint("CATIA에서 Measure Between을 실행할 수 없습니다.")
     }
 }
 
@@ -1197,6 +1210,7 @@ ShowShortcutWindow(*) {
         tabs.UseTab(2)
         window.AddText("w515", "CATIA V5 · Part Design / GSD")
         catiaList := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
+        catiaList.Add(, "Space", "Measure Between 실행")
         catiaList.Add(, "Ctrl+1", "모든 솔리드 Body 숨기기·표시")
         catiaList.Add(, "Ctrl+2", "모든 스케치 숨기기·표시")
         catiaList.Add(, "Ctrl+3", "3D 점·선·곡선 숨기기·표시 (교차·투영 포함)")
