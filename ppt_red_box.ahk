@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.55"
+appVersion := "1.0.56"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -29,8 +29,22 @@ F3::ApplyNanumFontToSelection()
     KeyWait "n"
 }
 ^+SC029::CycleSelectedDashStyles()
-^+WheelUp::AdjustSelectedOutlineWeight(0.25)
-^+WheelDown::AdjustSelectedOutlineWeight(-0.25)
+$+WheelDown:: {
+    if !ChangePowerPointTableSize("Rows", 1)
+        SendEvent "+{WheelDown}"
+}
+$+WheelUp:: {
+    if !ChangePowerPointTableSize("Rows", -1)
+        SendEvent "+{WheelUp}"
+}
+^+WheelDown:: {
+    if !ChangePowerPointTableSize("Columns", 1)
+        AdjustSelectedOutlineWeight(-0.25)
+}
+^+WheelUp:: {
+    if !ChangePowerPointTableSize("Columns", -1)
+        AdjustSelectedOutlineWeight(0.25)
+}
 $^+a:: {
     if !CycleSelectedArrowheads()
         Send "^+a"
@@ -884,6 +898,68 @@ ToSlidePoint(canvas, x, y) {
     return {x: (x - canvas.originX) * canvas.scaleX, y: (y - canvas.originY) * canvas.scaleY}
 }
 
+StylePowerPointTableCell(cell, row, column) {
+    fill := cell.Shape.Fill
+    if row = 1 || column = 1 {
+        fill.Solid()
+        fill.Visible := -1
+        fill.ForeColor.RGB := 0xF2F2F2
+        fill.Transparency := 0
+    } else {
+        fill.Visible := 0
+    }
+    text := cell.Shape.TextFrame.TextRange
+    text.Font.Name := "현대하모니 M"
+    text.Font.NameFarEast := "현대하모니 M"
+    text.Font.Size := 12
+    text.ParagraphFormat.Alignment := 2 ; ppAlignCenter
+    Loop 4 {
+        border := cell.Borders.Item(A_Index)
+        border.Visible := -1
+        border.ForeColor.RGB := 0x000000
+        border.Transparency := 0
+        border.Weight := 0.5
+    }
+}
+
+ChangePowerPointTableSize(dimension, delta) {
+    try {
+        ppt := ComObjActive("PowerPoint.Application")
+        selected := ppt.ActiveWindow.Selection.ShapeRange
+        if selected.Count != 1 || selected.Item(1).HasTable != -1
+            return false
+        table := selected.Item(1).Table
+    } catch {
+        return false
+    }
+    try {
+        entries := dimension = "Rows" ? table.Rows : table.Columns
+        if delta < 0 {
+            if entries.Count > 1
+                entries.Item(entries.Count).Delete()
+            return true
+        }
+        added := entries.Add()
+        try {
+            if dimension = "Rows" {
+                row := table.Rows.Count
+                Loop table.Columns.Count
+                    StylePowerPointTableCell(table.Cell(row, A_Index), row, A_Index)
+            } else {
+                column := table.Columns.Count
+                Loop table.Rows.Count
+                    StylePowerPointTableCell(table.Cell(A_Index, column), A_Index, column)
+            }
+        } catch as error {
+            added.Delete()
+            throw error
+        }
+    } catch {
+        ShowHint("표의 행·열을 변경할 수 없습니다.")
+    }
+    return true
+}
+
 InsertPowerPointTable() {
     TrackNativeFreeform()
     try {
@@ -897,23 +973,7 @@ InsertPowerPointTable() {
                 row := A_Index
                 Loop table.Columns.Count {
                     column := A_Index
-                    cell := table.Cell(row, column)
-                    fill := cell.Shape.Fill
-                    if row = 1 || column = 1 {
-                        fill.Solid()
-                        fill.Visible := -1
-                        fill.ForeColor.RGB := 0xF2F2F2
-                        fill.Transparency := 0
-                    } else {
-                        fill.Visible := 0
-                    }
-                    Loop 4 { ; ppBorderTop, Left, Bottom, Right
-                        border := cell.Borders.Item(A_Index)
-                        border.Visible := -1
-                        border.ForeColor.RGB := 0x000000
-                        border.Transparency := 0
-                        border.Weight := 0.5
-                    }
+                    StylePowerPointTableCell(table.Cell(row, column), row, column)
                 }
             }
         } catch as error {
@@ -1254,10 +1314,11 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트 글꼴 → 나눔바른고딕 OTF"],
-            ["Ctrl+1", "5행 3열 표 만들기"],
+            ["Ctrl+1", "5행 3열 표 · 현대하모니 M 12pt, 가운데 정렬"],
+            ["Shift+휠", "표 행 → 아래로 추가, 위로 마지막 행 삭제"],
             ["Ctrl+Shift+X", "텍스트 상자 → 가운데 정렬, 자동 크기, 글자 네온"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
-            ["Ctrl+Shift+휠", "선 두께 → 위로 0.25pt 증가, 아래로 0.25pt 감소"]
+            ["Ctrl+Shift+휠", "표 열 추가·삭제 / 도형 선 두께 조절"]
         ]
             list.Add(, shortcut[1], shortcut[2])
         list.ModifyCol(1, 125)
