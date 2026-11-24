@@ -2,12 +2,15 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.61"
+appVersion := "1.0.62"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
 pendingUpdate := ""
 updateStatus := ""
+defaultFontName := "현대하모니 M"
+defaultFontSize := 12
+fontSettingsPath := A_ScriptDir "\ppt_red_box.ini"
 outlineWeight := 1.5
 outlineColors := [0x0000FF, 0xFF0000, 0x00FFFF, 0x00FF00, 0x000000] ; Red, blue, yellow, green, black in Office BGR
 nativeFreeform := false
@@ -22,7 +25,7 @@ if A_LineFile = A_ScriptFullPath
     InsertPowerPointTable()
     KeyWait "1"
 }
-F3::ApplyNanumFontToSelection()
+F3::ApplyDefaultFontToSelection()
 ^+x::InsertTextbox()
 ^+n:: {
     ApplyToSelectedShapes(ToggleShapeGlow)
@@ -942,9 +945,7 @@ StylePowerPointTableCell(cell, row, column) {
     frame.VerticalAnchor := 3 ; msoAnchorMiddle
     text := frame.TextRange
     text.Font.Color.RGB := 0x000000
-    text.Font.Name := "현대하모니 M"
-    text.Font.NameFarEast := "현대하모니 M"
-    text.Font.Size := 12
+    ApplyDefaultFont(text.Font)
     text.ParagraphFormat.Alignment := 2 ; ppAlignCenter
     Loop 4 {
         border := cell.Borders.Item(A_Index)
@@ -1066,8 +1067,7 @@ CreateTextbox(shapes, point, slideWidth, slideHeight) {
         frame.AutoSize := 1 ; ppAutoSizeShapeToFitText
         frame.TextRange.ParagraphFormat.Alignment := 2 ; ppAlignCenter
         font := frame.TextRange.Font
-        SetNanumFont(font)
-        font.Size := 12
+        ApplyDefaultFont(font)
         font.Color.RGB := 0x000000
         ApplyWhiteGlow(shape.TextFrame2.TextRange.Font.Glow, 10, 0.10)
     } catch as error {
@@ -1077,30 +1077,61 @@ CreateTextbox(shapes, point, slideWidth, slideHeight) {
     return shape
 }
 
-ApplyNanumFontToSelection() {
+ApplyDefaultFontToSelection() {
     TrackNativeFreeform()
     try {
         ppt := ComObjActive("PowerPoint.Application")
         selection := ppt.ActiveWindow.Selection
         switch selection.Type {
             case 3: ; ppSelectionText
-                SetNanumFont(selection.TextRange.Font)
+                ApplyDefaultFont(selection.TextRange.Font)
             case 2: ; ppSelectionShapes
                 selected := selection.ShapeRange
                 Loop selected.Count {
                     shape := selected.Item(A_Index)
                     try {
                         if shape.HasTextFrame = -1
-                            SetNanumFont(shape.TextFrame.TextRange.Font)
+                            ApplyDefaultFont(shape.TextFrame.TextRange.Font)
                     }
                 }
         }
     }
 }
 
-SetNanumFont(font) {
-    font.Name := "NanumBarunGothicOTF"
-    font.NameFarEast := "NanumBarunGothicOTF"
+ApplyDefaultFont(font) {
+    font.Name := defaultFontName
+    font.NameFarEast := defaultFontName
+    font.Size := defaultFontSize
+}
+
+LoadFontSettings() {
+    global defaultFontName, defaultFontSize
+    try {
+        name := IniRead(fontSettingsPath, "Text", "Font", defaultFontName)
+        size := IniRead(fontSettingsPath, "Text", "Size", defaultFontSize)
+        if name = "현대하모니 M" || name = "NanumBarunGothicOTF"
+            defaultFontName := name
+        if IsNumber(size) && size > 0
+            defaultFontSize := Number(size)
+    }
+}
+
+SaveFontSettings(fontChoice, sizeChoice, status, *) {
+    global defaultFontName, defaultFontSize
+    size := Trim(sizeChoice.Text)
+    if !IsNumber(size) || size <= 0 {
+        status.Text := "글씨 크기를 양수로 입력하세요."
+        return
+    }
+    name := fontChoice.Value = 1 ? "현대하모니 M" : "NanumBarunGothicOTF"
+    try {
+        IniWrite("Font=" name "`nSize=" size, fontSettingsPath, "Text")
+        defaultFontName := name
+        defaultFontSize := Number(size)
+        status.Text := "저장됨"
+    } catch {
+        status.Text := "설정 파일을 저장할 수 없습니다."
+    }
 }
 
 DrawRectangle(canvas, x1, y1, x2, y2) {
@@ -1332,6 +1363,7 @@ HideHint() {
 }
 
 InitializeApp() {
+    LoadFontSettings()
     A_IconTip := "PowerPoint 그리기 도구"
     A_TrayMenu.Add("단축키 목록", ShowShortcutWindow)
     A_TrayMenu.Default := "단축키 목록"
@@ -1361,8 +1393,8 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+Q", "도트 → 시작점, 끝점, 양쪽, 없음"],
             ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
-            ["F3", "선택한 텍스트 글꼴 → 나눔바른고딕 OTF"],
-            ["Ctrl+1", "5행 3열 표 · 현대하모니 M 12pt, 가운데 정렬"],
+            ["F3", "선택한 텍스트에 기본 글꼴·크기 적용"],
+            ["Ctrl+1", "5행 3열 표 · 기본 글꼴·크기, 가운데 정렬"],
             ["Shift+휠", "표 행 → 아래로 추가, 위로 마지막 행 삭제"],
             ["Ctrl+Shift+X", "텍스트 상자 → 가운데 정렬, 자동 크기, 글자 네온"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
@@ -1404,6 +1436,15 @@ ShowShortcutWindow(*) {
         catiaList.ModifyCol(2, 382)
         window.AddText("w515", "현재 CATPart 기준 · 표시된 Body가 있으면 모두 숨기고, 모두 숨겨져 있으면 표시")
         tabs.UseTab()
+        window.AddText("xm y+14", "기본 글꼴")
+        fontChoice := window.AddDropDownList("x+8 yp-3 w190 Choose1", ["현대하모니 M", "나눔바른고딕 OTF"])
+        fontChoice.Choose(defaultFontName = "현대하모니 M" ? 1 : 2)
+        window.AddText("x+12 yp+3", "크기(pt)")
+        sizeChoice := window.AddComboBox("x+8 yp-3 w70", ["8", "9", "10", "11", "12", "14", "16", "18", "20", "24", "28", "32", "36", "48", "60", "72"])
+        sizeChoice.Text := defaultFontSize
+        saveFont := window.AddButton("x+8 yp w55", "저장")
+        fontStatus := window.AddText("xm y+7 w515", "텍스트 상자·표 생성과 F3에 적용됩니다.")
+        saveFont.OnEvent("Click", SaveFontSettings.Bind(fontChoice, sizeChoice, fontStatus))
         window.AddText("xm y+14", "자주 쓰는 기호")
         copyStatus := window.AddText("x+10 yp w250", "")
         window.SetFont("s13", "Segoe UI Symbol")
