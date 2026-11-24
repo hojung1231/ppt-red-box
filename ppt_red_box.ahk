@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.60"
+appVersion := "1.0.61"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -983,33 +983,17 @@ ChangePowerPointTableSize(dimension, delta) {
             Loop table.Rows.Count
                 heights.Push(table.Rows.Item(A_Index).Height)
         }
-        added := entries.Add()
-        try {
-            if dimension = "Rows" {
-                row := table.Rows.Count
-                Loop table.Columns.Count
-                    StylePowerPointTableCell(table.Cell(row, A_Index), row, A_Index)
-            } else {
-                column := table.Columns.Count
-                Loop table.Rows.Count
-                    StylePowerPointTableCell(table.Cell(A_Index, column), A_Index, column)
-            }
-        } catch as error {
-            added.Delete()
-            throw error
-        } finally {
-            if dimension = "Columns" {
-                ; PowerPoint redistributes the original width when adding a
-                ; column. Restore all old dimensions and append one full column.
-                for index, width in widths
-                    table.Columns.Item(index).Width := width
-                if table.Columns.Count > widths.Length
-                    table.Columns.Item(table.Columns.Count).Width := widths[widths.Length]
-                for index, height in heights
-                    table.Rows.Item(index).Height := height
-                tableShape.Left := left
-                tableShape.Top := top
-            }
+        ; Native Add inherits the adjacent row/column's cell formatting.
+        entries.Add()
+        if dimension = "Columns" {
+            ; Preserve all old dimensions while appending a full-width column.
+            for index, width in widths
+                table.Columns.Item(index).Width := width
+            table.Columns.Item(table.Columns.Count).Width := widths[widths.Length]
+            for index, height in heights
+                table.Rows.Item(index).Height := height
+            tableShape.Left := left
+            tableShape.Top := top
         }
     } catch {
         ShowHint("표의 행·열을 변경할 수 없습니다.")
