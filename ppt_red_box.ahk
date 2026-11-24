@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.56"
+appVersion := "1.0.57"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -908,7 +908,10 @@ StylePowerPointTableCell(cell, row, column) {
     } else {
         fill.Visible := 0
     }
-    text := cell.Shape.TextFrame.TextRange
+    frame := cell.Shape.TextFrame
+    frame.VerticalAnchor := 3 ; msoAnchorMiddle
+    text := frame.TextRange
+    text.Font.Color.RGB := 0x000000
     text.Font.Name := "현대하모니 M"
     text.Font.NameFarEast := "현대하모니 M"
     text.Font.Size := 12
@@ -966,7 +969,13 @@ InsertPowerPointTable() {
         canvas := GetSlideCanvas()
         if !canvas
             return
-        shape := canvas.slide.Shapes.AddTable(5, 3)
+        pointsPerCentimeter := 72 / 2.54
+        width := 15 * pointsPerCentimeter
+        height := 4 * pointsPerCentimeter
+        page := canvas.presentation.PageSetup
+        left := Max(0, (page.SlideWidth - width) / 2)
+        top := Max(0, (page.SlideHeight - height) / 2)
+        shape := canvas.slide.Shapes.AddTable(5, 3, left, top, width, height)
         try {
             table := shape.Table
             Loop table.Rows.Count {
