@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.53"
+appVersion := "1.0.54"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -18,6 +18,10 @@ if A_LineFile = A_ScriptFullPath
     InitializeApp()
 
 #HotIf WinActive("ahk_exe POWERPNT.EXE")
+^1:: {
+    InsertPowerPointTable()
+    KeyWait "1"
+}
 F3::ApplyNanumFontToSelection()
 ^+x::InsertTextbox()
 ^+n:: {
@@ -880,6 +884,20 @@ ToSlidePoint(canvas, x, y) {
     return {x: (x - canvas.originX) * canvas.scaleX, y: (y - canvas.originY) * canvas.scaleY}
 }
 
+InsertPowerPointTable() {
+    TrackNativeFreeform()
+    try {
+        canvas := GetSlideCanvas()
+        if !canvas
+            return
+        shape := canvas.slide.Shapes.AddTable(5, 3)
+        shape.Select()
+        try shape.Table.Cell(1, 1).Shape.TextFrame.TextRange.Select()
+    } catch {
+        ShowHint("표를 만들 수 없습니다. PowerPoint 편집 화면을 확인하세요.")
+    }
+}
+
 InsertTextbox() {
     TrackNativeFreeform()
     try {
@@ -1207,6 +1225,7 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트 글꼴 → 나눔바른고딕 OTF"],
+            ["Ctrl+1", "5행 3열 표 만들기"],
             ["Ctrl+Shift+X", "텍스트 상자 → 가운데 정렬, 자동 크기, 글자 네온"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
             ["Ctrl+Shift+휠", "선 두께 → 위로 0.25pt 증가, 아래로 0.25pt 감소"]
