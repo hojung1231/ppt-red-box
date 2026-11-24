@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.58"
+appVersion := "1.0.59"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -44,6 +44,11 @@ $+WheelUp:: {
 ^+WheelUp:: {
     if !ChangePowerPointTableSize("Columns", -1)
         AdjustSelectedOutlineWeight(0.25)
+}
+$^+q:: {
+    if !CycleSelectedArrowheads(6) ; msoArrowheadOval
+        Send "^+q"
+    KeyWait "q"
 }
 $^+a:: {
     if !CycleSelectedArrowheads()
@@ -1182,7 +1187,7 @@ StopTrackingFreeform() {
     nativeFreeform := false
 }
 
-CycleSelectedArrowheads() {
+CycleSelectedArrowheads(style := 2) {
     TrackNativeFreeform()
     changed := false
     try {
@@ -1194,7 +1199,7 @@ CycleSelectedArrowheads() {
         Loop selected.Count {
             shape := selected.Item(A_Index)
             if shape.Type = 5 || shape.Type = 9 { ; msoFreeform or msoLine (including connectors)
-                CycleArrowheads(shape.Line)
+                CycleArrowheads(shape.Line, style)
                 changed := true
             }
         }
@@ -1202,12 +1207,12 @@ CycleSelectedArrowheads() {
     return changed
 }
 
-CycleArrowheads(line) {
+CycleArrowheads(line, style := 2) {
     begin := line.BeginArrowheadStyle != 1
     end := line.EndArrowheadStyle != 1
     next := Mod(begin + 2 * end + 1, 4)
-    line.BeginArrowheadStyle := (next & 1) ? 2 : 1 ; triangle or none
-    line.EndArrowheadStyle := (next & 2) ? 2 : 1
+    line.BeginArrowheadStyle := (next & 1) ? style : 1
+    line.EndArrowheadStyle := (next & 2) ? style : 1
 }
 
 CycleSelectedDashStyles() {
@@ -1344,6 +1349,7 @@ ShowShortcutWindow(*) {
             ["휠 클릭", "PowerPoint 자유형 시작"],
             ["휠 드래그", "빨간 사각형 그리기"],
             ["Ctrl+Shift+A", "화살촉 → 시작점, 끝점, 양쪽, 없음"],
+            ["Ctrl+Shift+Q", "도트 → 시작점, 끝점, 양쪽, 없음"],
             ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트 글꼴 → 나눔바른고딕 OTF"],
