@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.59"
+appVersion := "1.0.60"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -160,7 +160,7 @@ MButton:: {
 ~v:: {
     if A_PriorHotkey = "~v" && A_TimeSincePriorHotkey < 350 {
         KeyWait "v"
-        StartCatiaSketchNormalView()
+        ToggleCatiaView()
     }
     KeyWait "v"
 }
@@ -663,16 +663,41 @@ StartCatiaSplit() {
     }
 }
 
-StartCatiaSketchNormalView() {
+ToggleCatiaView() {
     try {
         catia := ComObjActive("CATIA.Application")
-        if catia.GetWorkbenchId() != "CS0WKS" {
-            ShowHint("스케치 편집 중에 VV를 사용하세요.")
+        if catia.GetWorkbenchId() = "CS0WKS" {
+            catia.StartCommand("Normal View")
             return
         }
-        catia.StartCommand("Normal View")
+        ; CATIA's vector output arguments are handled inside VBScript.
+        script := "
+        (
+        Function ReverseView()
+            Dim viewer, view, origin(2), sight(2), up(2), distance, magnitude, i
+            Set viewer = CATIA.ActiveWindow.ActiveViewer
+            Set view = viewer.Viewpoint3D
+            view.GetOrigin origin
+            view.GetSightDirection sight
+            view.GetUpDirection up
+            distance = view.FocusDistance
+            magnitude = Sqr(sight(0)^2 + sight(1)^2 + sight(2)^2)
+            If magnitude = 0 Then Err.Raise 5, , "Invalid sight direction"
+            For i = 0 To 2
+                origin(i) = origin(i) + 2 * distance * sight(i) / magnitude
+                sight(i) = -sight(i)
+            Next
+            view.PutOrigin origin
+            view.PutSightDirection sight
+            view.PutUpDirection up
+            Set viewer.Viewpoint3D = view
+            viewer.Update
+            ReverseView = True
+        End Function
+        )"
+        catia.SystemService.Evaluate(script, 0, "ReverseView", ComObjArray(12, 0))
     } catch {
-        ShowHint("스케치에서 Normal View를 실행할 수 없습니다.")
+        ShowHint("CATIA에서 뷰 방향을 전환할 수 없습니다.")
     }
 }
 
@@ -1381,7 +1406,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "SS", "Part Design: 솔리드 Split · GSD: 서피스 Split")
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
-        catiaList.Add(, "VV", "스케치 Normal View · 반복하면 방향 반전")
+        catiaList.Add(, "VV", "스케치: Normal View · 3D: 현재 뷰 반대 방향")
         catiaList.Add(, "CC", "스케치의 선택한 두 개체 Coincidence 적용")
         catiaList.Add(, "QQ", "스케치 Quick Trim 연속 실행 · Esc로 종료")
         catiaList.Add(, "EE", "GSD에서 Multiple Extract 실행")
