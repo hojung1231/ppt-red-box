@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.57"
+appVersion := "1.0.58"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -931,7 +931,8 @@ ChangePowerPointTableSize(dimension, delta) {
         selected := ppt.ActiveWindow.Selection.ShapeRange
         if selected.Count != 1 || selected.Item(1).HasTable != -1
             return false
-        table := selected.Item(1).Table
+        tableShape := selected.Item(1)
+        table := tableShape.Table
     } catch {
         return false
     }
@@ -941,6 +942,16 @@ ChangePowerPointTableSize(dimension, delta) {
             if entries.Count > 1
                 entries.Item(entries.Count).Delete()
             return true
+        }
+        widths := []
+        heights := []
+        if dimension = "Columns" {
+            left := tableShape.Left
+            top := tableShape.Top
+            Loop table.Columns.Count
+                widths.Push(table.Columns.Item(A_Index).Width)
+            Loop table.Rows.Count
+                heights.Push(table.Rows.Item(A_Index).Height)
         }
         added := entries.Add()
         try {
@@ -956,6 +967,19 @@ ChangePowerPointTableSize(dimension, delta) {
         } catch as error {
             added.Delete()
             throw error
+        } finally {
+            if dimension = "Columns" {
+                ; PowerPoint redistributes the original width when adding a
+                ; column. Restore all old dimensions and append one full column.
+                for index, width in widths
+                    table.Columns.Item(index).Width := width
+                if table.Columns.Count > widths.Length
+                    table.Columns.Item(table.Columns.Count).Width := widths[widths.Length]
+                for index, height in heights
+                    table.Rows.Item(index).Height := height
+                tableShape.Left := left
+                tableShape.Top := top
+            }
         }
     } catch {
         ShowHint("표의 행·열을 변경할 수 없습니다.")
