@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.66"
+appVersion := "1.0.67"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -125,6 +125,14 @@ MButton:: {
 #HotIf catiaQuickTrimRepeat && WinActive("ahk_exe CNEXT.exe")
 ~LButton Up::QueueCatiaQuickTrim()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+^+Numpad4::
+^+NumpadLeft::RotateCatiaViewStep(0, -11.25, "sc04B")
+^+Numpad6::
+^+NumpadRight::RotateCatiaViewStep(0, 11.25, "sc04D")
+^+Numpad8::
+^+NumpadUp::RotateCatiaViewStep(1, -11.25, "sc048")
+^+Numpad2::
+^+NumpadDown::RotateCatiaViewStep(1, 11.25, "sc050")
 ^Numpad5::
 ^NumpadClear:: {
     CycleCatiaUpperIsometricView()
@@ -699,6 +707,46 @@ StartCatiaSplit() {
     } catch {
         ShowHint("Split을 실행할 수 없습니다. Insert → Surface-Based Features → Split 메뉴를 확인하세요.")
     }
+}
+
+RotateCatiaViewStep(axisType, angle, key) {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        script := "
+        (
+        Function RotateStep(axisType, angle)
+            Dim viewer, view, sight(2), up(2), axis(2), magnitude, i
+            Set viewer = CATIA.ActiveWindow.ActiveViewer
+            Set view = viewer.Viewpoint3D
+            view.GetUpDirection up
+            If axisType = 0 Then
+                For i = 0 To 2
+                    axis(i) = up(i)
+                Next
+            Else
+                view.GetSightDirection sight
+                axis(0) = sight(1)*up(2) - sight(2)*up(1)
+                axis(1) = sight(2)*up(0) - sight(0)*up(2)
+                axis(2) = sight(0)*up(1) - sight(1)*up(0)
+            End If
+            magnitude = Sqr(axis(0)^2 + axis(1)^2 + axis(2)^2)
+            If magnitude = 0 Then Err.Raise 5, , "Invalid rotation axis"
+            For i = 0 To 2
+                axis(i) = axis(i) / magnitude
+            Next
+            viewer.Rotate axis, angle
+            viewer.Update
+            RotateStep = True
+        End Function
+        )"
+        parameters := ComObjArray(12, 2)
+        parameters[0] := axisType
+        parameters[1] := angle
+        catia.SystemService.Evaluate(script, 0, "RotateStep", parameters)
+    } catch {
+        ShowHint("CATIA 뷰를 회전할 수 없습니다.")
+    }
+    KeyWait key
 }
 
 CycleCatiaUpperIsometricView() {
@@ -1521,6 +1569,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
         catiaList.Add(, "VV", "스케치: Normal View · 3D: 현재 뷰 반대 방향")
+        catiaList.Add(, "Ctrl+Shift+넘 4/6/8/2", "화면 기준 좌·우·위·아래 11.25도 회전")
         catiaList.Add(, "Ctrl+넘패드 5", "상단 등각도 네 방향 순환")
         catiaList.Add(, "Ctrl+넘패드 8/2", "시선 방향 −Z / +Z")
         catiaList.Add(, "Ctrl+넘패드 4/6", "시선 방향 +Y / −Y")
