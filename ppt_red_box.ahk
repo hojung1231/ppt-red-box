@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.68"
+appVersion := "1.0.69"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -125,27 +125,16 @@ MButton:: {
 #HotIf catiaQuickTrimRepeat && WinActive("ahk_exe CNEXT.exe")
 ~LButton Up::QueueCatiaQuickTrim()
 #HotIf WinActive("ahk_exe CNEXT.exe")
-^+Numpad4::
-^+NumpadLeft::RotateCatiaViewStep(0, -11.25, "sc04B")
-^+Numpad6::
-^+NumpadRight::RotateCatiaViewStep(0, 11.25, "sc04D")
-^+Numpad8::
-^+NumpadUp::RotateCatiaViewStep(1, -11.25, "sc048")
-^+Numpad2::
-^+NumpadDown::RotateCatiaViewStep(1, 11.25, "sc050")
+*^sc04B::HandleCatiaNumpadView(0, -11.25, "sc04B", 1, 0)
+*^sc04D::HandleCatiaNumpadView(0, 11.25, "sc04D", -1, 0)
+*^sc048::HandleCatiaNumpadView(1, -11.25, "sc048", 0, -1)
+*^sc050::HandleCatiaNumpadView(1, 11.25, "sc050", 0, 1)
 ^Numpad5::
 ^NumpadClear:: {
     CycleCatiaUpperIsometricView()
     KeyWait "sc04C"
 }
-^Numpad8::
-^NumpadUp::SetCatiaDirectionalView(0, -1)
-^Numpad2::
-^NumpadDown::SetCatiaDirectionalView(0, 1)
-^Numpad4::
-^NumpadLeft::SetCatiaDirectionalView(1, 0)
-^Numpad6::
-^NumpadRight::SetCatiaDirectionalView(-1, 0)
+
 ^Numpad7::
 ^NumpadHome::SetCatiaDirectionalView(1, -1)
 ^Numpad9::
@@ -706,6 +695,17 @@ StartCatiaSplit() {
         }
     } catch {
         ShowHint("Split을 실행할 수 없습니다. Insert → Surface-Based Features → Split 메뉴를 확인하세요.")
+    }
+}
+
+HandleCatiaNumpadView(axisType, angle, key, sightY, sightZ) {
+    ; Windows can synthesize Shift-up while interpreting NumLock keys.
+    ; The keyboard hook tracks which Shift key is physically held.
+    if GetKeyState("LShift", "P") || GetKeyState("RShift", "P")
+        RotateCatiaViewStep(axisType, angle, key)
+    else {
+        SetCatiaDirectionalView(sightY, sightZ)
+        KeyWait key
     }
 }
 
