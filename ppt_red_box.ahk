@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.70"
+appVersion := "1.0.71"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -296,9 +296,10 @@ $f:: {
 #HotIf
 
 AdjustCatiaBodyOpacity(delta) {
-    static lastBody := 0, lastTick := 0
+    static normalizedBodies := Map()
     selection := 0
     original := 0
+    restoreSynchronization := false
     try {
         catia := ComObjActive("CATIA.Application")
         selection := catia.ActiveDocument.Selection
@@ -320,32 +321,30 @@ AdjustCatiaBodyOpacity(delta) {
         }
         if !body
             throw Error("선택한 개체의 상위 Body를 찾을 수 없습니다.")
+        oldSynchronization := catia.HSOSynchronized
+        catia.HSOSynchronized := false
+        restoreSynchronization := true
         selection.Clear()
         selection.Add(body)
         opacity := Buffer(4, 0)
         if selection.VisProperties.GetRealOpacity(ComValue(0x4003, opacity.Ptr)) != 0
             throw Error("Body의 투명도를 읽을 수 없습니다.")
         nextOpacity := Max(0, Min(255, NumGet(opacity, 0, "Int") + delta))
-        sameGesture := lastBody && ComObjValue(lastBody) = ComObjValue(body)
-            && A_TickCount - lastTick < 1000
-        if !sameGesture {
-            ; Reset only opacity properties, leaving color and other styles intact.
-            for query in ["Name=*,sel", "Topology.Face,sel"] {
-                selection.Clear()
-                selection.Add(body)
-                selection.Search(query)
-                if selection.Count2
-                    selection.VisProperties.SetRealOpacity(255, 0)
-            }
+        identity := ComObjValue(body)
+        if !normalizedBodies.Has(identity) {
+            ; Body inheritance controls descendant faces without enumerating
+            ; topology. Reset tree-node opacity once for this loaded Body.
+            selection.Search("Name=*,sel")
+            if selection.Count2
+                selection.VisProperties.SetRealOpacity(255, 0)
         }
         selection.Clear()
         selection.Add(body)
         selection.VisProperties.SetRealOpacity(nextOpacity, 1)
-        lastBody := body
-        lastTick := A_TickCount
+        ; Keep a reference so cached COM addresses cannot be recycled.
+        normalizedBodies[identity] := body
         ShowHint(body.Name " · 투명도 " Round((255 - nextOpacity) * 100 / 255) "%")
     } catch as error {
-        lastBody := 0
         ShowHint(error.Message)
     } finally {
         if selection && original {
@@ -354,6 +353,8 @@ AdjustCatiaBodyOpacity(delta) {
                 selection.Add(original)
             }
         }
+        if restoreSynchronization
+            try catia.HSOSynchronized := oldSynchronization
     }
 }
 
