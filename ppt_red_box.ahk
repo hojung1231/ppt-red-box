@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.64"
+appVersion := "1.0.65"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -719,8 +719,8 @@ SetCatiaDirectionalView(sightY, sightZ) {
             sight(1) = sightY / magnitude
             sight(2) = sightZ / magnitude
             If Abs(sight(2)) > 0.999 Then
-                up(0) = 0
-                up(1) = 1
+                up(0) = -1
+                up(1) = 0
                 up(2) = 0
             Else
                 up(0) = 0
