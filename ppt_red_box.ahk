@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.72"
+appVersion := "1.0.73"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -341,6 +341,10 @@ AdjustCatiaBodyOpacity(delta) {
         selection.Clear()
         selection.Add(body)
         selection.VisProperties.SetRealOpacity(nextOpacity, 1)
+        viewer := catia.ActiveWindow.ActiveViewer
+        if nextOpacity < 255 && viewer.RenderingMode != 5 && viewer.RenderingMode != 6
+            viewer.RenderingMode := 6 ; catRenderMaterialWithEdges
+        viewer.Update()
         ; Keep a reference so cached COM addresses cannot be recycled.
         normalizedBodies[identity] := body
         ShowHint(body.Name " · 투명도 " Round((255 - nextOpacity) * 100 / 255) "%")
