@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.75"
+appVersion := "1.0.76"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -26,24 +26,15 @@ if A_LineFile = A_ScriptFullPath
 ~d::
 ~+d::MarkPowerPointDigitPrefix()
 #HotIf WinActive("ahk_exe POWERPNT.EXE") && IsPowerPointTextEditing() && IsPowerPointDigitPrefixRecent()
-:*?:d1::①
-:*?:d2::②
-:*?:d3::③
-:*?:d4::④
-:*?:d5::⑤
-:*?:d6::⑥
-:*?:d7::⑦
-:*?:d8::⑧
-:*?:d9::⑨
-:*?:ㅇ1::①
-:*?:ㅇ2::②
-:*?:ㅇ3::③
-:*?:ㅇ4::④
-:*?:ㅇ5::⑤
-:*?:ㅇ6::⑥
-:*?:ㅇ7::⑦
-:*?:ㅇ8::⑧
-:*?:ㅇ9::⑨
+$1::TypePowerPointCircledDigit("1")
+$2::TypePowerPointCircledDigit("2")
+$3::TypePowerPointCircledDigit("3")
+$4::TypePowerPointCircledDigit("4")
+$5::TypePowerPointCircledDigit("5")
+$6::TypePowerPointCircledDigit("6")
+$7::TypePowerPointCircledDigit("7")
+$8::TypePowerPointCircledDigit("8")
+$9::TypePowerPointCircledDigit("9")
 #HotIf WinActive("ahk_exe POWERPNT.EXE")
 ^1:: {
     InsertPowerPointTable()
@@ -1289,6 +1280,16 @@ MarkPowerPointDigitPrefix() {
     global pptDigitPrefixTick, pptDigitPrefixWindow
     pptDigitPrefixTick := A_TickCount
     pptDigitPrefixWindow := WinActive("ahk_exe POWERPNT.EXE")
+}
+
+TypePowerPointCircledDigit(key) {
+    global pptDigitPrefixTick
+    pptDigitPrefixTick := -1000
+    ; The ordinary digit first commits an IME-composing Korean ㅇ.
+    ; Replace the committed prefix and digit as one circled numeral.
+    SetKeyDelay 10, 10
+    SendEvent key
+    SendEvent "{BS 2}{U+" Format("{:04X}", 0x2460 + Integer(key) - 1) "}"
 }
 
 IsPowerPointDigitPrefixRecent() {
