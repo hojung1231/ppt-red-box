@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.63"
+appVersion := "1.0.64"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -125,6 +125,22 @@ MButton:: {
 #HotIf catiaQuickTrimRepeat && WinActive("ahk_exe CNEXT.exe")
 ~LButton Up::QueueCatiaQuickTrim()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+^Numpad8::
+^NumpadUp::SetCatiaDirectionalView(0, -1)
+^Numpad2::
+^NumpadDown::SetCatiaDirectionalView(0, 1)
+^Numpad4::
+^NumpadLeft::SetCatiaDirectionalView(1, 0)
+^Numpad6::
+^NumpadRight::SetCatiaDirectionalView(-1, 0)
+^Numpad7::
+^NumpadHome::SetCatiaDirectionalView(1, -1)
+^Numpad9::
+^NumpadPgUp::SetCatiaDirectionalView(-1, -1)
+^Numpad1::
+^NumpadEnd::SetCatiaDirectionalView(1, 1)
+^Numpad3::
+^NumpadPgDn::SetCatiaDirectionalView(-1, 1)
 ~m:: {
     if A_PriorHotkey = "~m" && A_TimeSincePriorHotkey < 350 {
         KeyWait "m"
@@ -680,6 +696,59 @@ StartCatiaSplit() {
     }
 }
 
+SetCatiaDirectionalView(sightY, sightZ) {
+    try {
+        catia := ComObjActive("CATIA.Application")
+        script := "
+        (
+        Function SetDirection(sightY, sightZ)
+            Dim viewer, view, origin(2), sight(2), up(2)
+            Dim target(2), distance, magnitude, oldMagnitude, i
+            Set viewer = CATIA.ActiveWindow.ActiveViewer
+            Set view = viewer.Viewpoint3D
+            view.GetOrigin origin
+            view.GetSightDirection sight
+            distance = view.FocusDistance
+            oldMagnitude = Sqr(sight(0)^2 + sight(1)^2 + sight(2)^2)
+            If oldMagnitude = 0 Then Err.Raise 5, , "Invalid sight direction"
+            For i = 0 To 2
+                target(i) = origin(i) + distance * sight(i) / oldMagnitude
+            Next
+            magnitude = Sqr(sightY^2 + sightZ^2)
+            sight(0) = 0
+            sight(1) = sightY / magnitude
+            sight(2) = sightZ / magnitude
+            If Abs(sight(2)) > 0.999 Then
+                up(0) = 0
+                up(1) = 1
+                up(2) = 0
+            Else
+                up(0) = 0
+                up(1) = -sight(2) * sight(1)
+                up(2) = 1 - sight(2)^2
+                magnitude = Sqr(up(1)^2 + up(2)^2)
+                up(1) = up(1) / magnitude
+                up(2) = up(2) / magnitude
+            End If
+            For i = 0 To 2
+                origin(i) = target(i) - distance * sight(i)
+            Next
+            view.PutOrigin origin
+            view.PutSightDirection sight
+            view.PutUpDirection up
+            viewer.Update
+            SetDirection = True
+        End Function
+        )"
+        parameters := ComObjArray(12, 2)
+        parameters[0] := sightY
+        parameters[1] := sightZ
+        catia.SystemService.Evaluate(script, 0, "SetDirection", parameters)
+    } catch {
+        ShowHint("CATIA 방향 뷰를 설정할 수 없습니다.")
+    }
+}
+
 ToggleCatiaView() {
     try {
         catia := ComObjActive("CATIA.Application")
@@ -707,7 +776,6 @@ ToggleCatiaView() {
             view.PutOrigin origin
             view.PutSightDirection sight
             view.PutUpDirection up
-            Set viewer.Viewpoint3D = view
             viewer.Update
             ReverseView = True
         End Function
@@ -1437,6 +1505,9 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "DD", "스케치에서 Point by Clicking 실행")
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
         catiaList.Add(, "VV", "스케치: Normal View · 3D: 현재 뷰 반대 방향")
+        catiaList.Add(, "Ctrl+넘패드 8/2", "시선 방향 −Z / +Z")
+        catiaList.Add(, "Ctrl+넘패드 4/6", "시선 방향 +Y / −Y")
+        catiaList.Add(, "Ctrl+넘패드 7/9/1/3", "인접한 두 방향 사이의 45도 뷰")
         catiaList.Add(, "CC", "스케치의 선택한 두 개체 Coincidence 적용")
         catiaList.Add(, "QQ", "스케치 Quick Trim 연속 실행 · Esc로 종료")
         catiaList.Add(, "EE", "GSD에서 Multiple Extract 실행")
