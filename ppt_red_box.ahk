@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.69"
+appVersion := "1.0.70"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -125,6 +125,8 @@ MButton:: {
 #HotIf catiaQuickTrimRepeat && WinActive("ahk_exe CNEXT.exe")
 ~LButton Up::QueueCatiaQuickTrim()
 #HotIf WinActive("ahk_exe CNEXT.exe")
+^+WheelUp::AdjustCatiaBodyOpacity(-26)
+^+WheelDown::AdjustCatiaBodyOpacity(26)
 *^sc04B::HandleCatiaNumpadView(0, -11.25, "sc04B", 1, 0)
 *^sc04D::HandleCatiaNumpadView(0, 11.25, "sc04D", -1, 0)
 *^sc048::HandleCatiaNumpadView(1, -11.25, "sc048", 0, -1)
@@ -292,6 +294,68 @@ $f:: {
     KeyWait "1"
 }
 #HotIf
+
+AdjustCatiaBodyOpacity(delta) {
+    static lastBody := 0, lastTick := 0
+    selection := 0
+    original := 0
+    try {
+        catia := ComObjActive("CATIA.Application")
+        selection := catia.ActiveDocument.Selection
+        if selection.Count2 != 1 {
+            ShowHint("투명도를 조절할 개체 하나를 선택하세요.")
+            return
+        }
+        original := selection.Item2(1).Value
+        candidate := original
+        body := 0
+        Loop 30 {
+            try {
+                shapes := candidate.Shapes
+                sketches := candidate.Sketches
+                body := candidate
+                break
+            }
+            candidate := candidate.Parent
+        }
+        if !body
+            throw Error("선택한 개체의 상위 Body를 찾을 수 없습니다.")
+        selection.Clear()
+        selection.Add(body)
+        opacity := Buffer(4, 0)
+        if selection.VisProperties.GetRealOpacity(ComValue(0x4003, opacity.Ptr)) != 0
+            throw Error("Body의 투명도를 읽을 수 없습니다.")
+        nextOpacity := Max(0, Min(255, NumGet(opacity, 0, "Int") + delta))
+        sameGesture := lastBody && ComObjValue(lastBody) = ComObjValue(body)
+            && A_TickCount - lastTick < 1000
+        if !sameGesture {
+            ; Reset only opacity properties, leaving color and other styles intact.
+            for query in ["Name=*,sel", "Topology.Face,sel"] {
+                selection.Clear()
+                selection.Add(body)
+                selection.Search(query)
+                if selection.Count2
+                    selection.VisProperties.SetRealOpacity(255, 0)
+            }
+        }
+        selection.Clear()
+        selection.Add(body)
+        selection.VisProperties.SetRealOpacity(nextOpacity, 1)
+        lastBody := body
+        lastTick := A_TickCount
+        ShowHint(body.Name " · 투명도 " Round((255 - nextOpacity) * 100 / 255) "%")
+    } catch as error {
+        lastBody := 0
+        ShowHint(error.Message)
+    } finally {
+        if selection && original {
+            try {
+                selection.Clear()
+                selection.Add(original)
+            }
+        }
+    }
+}
 
 FindCatiaContainer(original) {
     container := 0
@@ -1586,6 +1650,7 @@ ShowShortcutWindow(*) {
         window.AddText("w515", "CATIA V5 · Part Design / GSD")
         catiaList := window.AddListView("w515 r9 -Multi", ["단축키", "동작"])
         catiaList.Add(, "MM", "Measure Between 실행")
+        catiaList.Add(, "Ctrl+Shift+휠", "상위 Body 투명도 · 위로 투명, 아래로 불투명")
         catiaList.Add(, "Ctrl+1", "모든 솔리드 Body 숨기기·표시")
         catiaList.Add(, "Ctrl+2", "모든 스케치 숨기기·표시")
         catiaList.Add(, "Ctrl+3", "3D 점·선·곡선 숨기기·표시 (교차·투영 포함)")
