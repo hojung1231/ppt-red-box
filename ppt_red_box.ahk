@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.77"
+appVersion := "1.0.78"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -35,6 +35,11 @@ $6::TypePowerPointCircledDigit("6")
 $7::TypePowerPointCircledDigit("7")
 $8::TypePowerPointCircledDigit("8")
 $9::TypePowerPointCircledDigit("9")
+#HotIf WinActive("ahk_exe POWERPNT.EXE") && (GetKeyState("LShift", "P") || GetKeyState("RShift", "P"))
+*^sc04B::AlignPowerPointShapes(0, "sc04B")
+*^sc04D::AlignPowerPointShapes(2, "sc04D")
+*^sc048::AlignPowerPointShapes(3, "sc048")
+*^sc050::AlignPowerPointShapes(5, "sc050")
 #HotIf WinActive("ahk_exe POWERPNT.EXE")
 ^1:: {
     InsertPowerPointTable()
@@ -1270,6 +1275,17 @@ ChangePowerPointTableSize(dimension, delta) {
     return true
 }
 
+AlignPowerPointShapes(alignment, key) {
+    try {
+        ppt := ComObjActive("PowerPoint.Application")
+        selected := ppt.ActiveWindow.Selection.ShapeRange
+        selected.Align(alignment, selected.Count = 1 ? -1 : 0)
+    } catch {
+        ShowHint("맞출 개체를 먼저 선택하세요.")
+    }
+    KeyWait key
+}
+
 IsPowerPointTextEditing() {
     try return ComObjActive("PowerPoint.Application").ActiveWindow.Selection.Type = 3
     catch
@@ -1705,6 +1721,7 @@ ShowShortcutWindow(*) {
             ["휠 드래그", "빨간 사각형 그리기"],
             ["Ctrl+Shift+A", "화살촉 → 시작점, 끝점, 양쪽, 없음"],
             ["Ctrl+Shift+Q", "도트 → 시작점, 끝점, 양쪽, 없음"],
+            ["Ctrl+Shift+넘 4/6/8/2", "개체 왼쪽·오른쪽·위쪽·아래쪽 맞춤"],
             ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트에 기본 글꼴·크기 적용"],
