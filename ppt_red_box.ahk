@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.76"
+appVersion := "1.0.77"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -1555,7 +1555,19 @@ CycleSelectedDashStyles() {
 }
 
 AdjustSelectedOutlineWeight(delta) {
-    ApplyToSelectedShapes((shape) => shape.Line.Weight := AdjustedOutlineWeight(shape.Line.Weight, delta))
+    ApplyToSelectedShapes((shape) => AdjustShapeOutlineWeight(shape, delta))
+}
+
+AdjustShapeOutlineWeight(shape, delta) {
+    line := shape.Line
+    current := line.Visible = -1 ? line.Weight : 0
+    wasHidden := line.Visible != -1
+    line.Visible := -1
+    line.Weight := AdjustedOutlineWeight(current, delta)
+    if wasHidden {
+        line.ForeColor.RGB := outlineColors[1]
+        line.Transparency := 0
+    }
 }
 
 AdjustedOutlineWeight(current, delta) {
@@ -1621,12 +1633,19 @@ CycleSelectedColors() {
 CycleShapeColor(shape) {
     if shape.Type = 17 { ; msoTextBox
         color := shape.TextFrame.TextRange.Font.Color
-    } else if shape.Tags.Item("PPT_RED_BOX_DRAWING") = "1" {
-        color := shape.Line.ForeColor
+        color.RGB := NextOutlineColor(color.RGB)
     } else {
-        return false
+        if shape.HasTable = -1
+            return false
+        line := shape.Line
+        if line.Visible != -1 {
+            line.Visible := -1
+            line.ForeColor.RGB := outlineColors[1]
+            line.Transparency := 0
+        } else {
+            line.ForeColor.RGB := NextOutlineColor(line.ForeColor.RGB)
+        }
     }
-    color.RGB := NextOutlineColor(color.RGB)
     return true
 }
 
