@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.67"
+appVersion := "1.0.68"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -750,11 +750,44 @@ RotateCatiaViewStep(axisType, angle, key) {
 }
 
 CycleCatiaUpperIsometricView() {
-    static index := 1
-    directions := [[-1, -1], [1, -1], [1, 1], [-1, 1]]
-    direction := directions[index]
-    if SetCatiaDirectionalView(direction[2], -1, direction[1])
-        index := Mod(index, directions.Length) + 1
+    static index := 1, previous := 0, previousDocument := 0
+    directions := [[-1, 1], [-1, -1], [1, -1], [1, 1]]
+    try {
+        catia := ComObjActive("CATIA.Application")
+        document := catia.ActiveDocument
+        if !previousDocument || ComObjValue(previousDocument) != ComObjValue(document) {
+            index := 1
+        } else if previous {
+            script := "
+            (
+            Function MatchesView(x, y)
+                Dim view, sight(2), up(2)
+                Set view = CATIA.ActiveWindow.ActiveViewer.Viewpoint3D
+                view.GetSightDirection sight
+                view.GetUpDirection up
+                MatchesView = Abs(sight(0)-x/Sqr(3)) < 0.00001 And _
+                    Abs(sight(1)-y/Sqr(3)) < 0.00001 And _
+                    Abs(sight(2)+1/Sqr(3)) < 0.00001 And _
+                    Abs(up(0)-x/Sqr(6)) < 0.00001 And _
+                    Abs(up(1)-y/Sqr(6)) < 0.00001 And _
+                    Abs(up(2)-2/Sqr(6)) < 0.00001
+            End Function
+            )"
+            parameters := ComObjArray(12, 2)
+            parameters[0] := previous[1]
+            parameters[1] := previous[2]
+            if !catia.SystemService.Evaluate(script, 0, "MatchesView", parameters)
+                index := 1
+        }
+        direction := directions[index]
+        if SetCatiaDirectionalView(direction[2], -1, direction[1]) {
+            previous := direction
+            previousDocument := document
+            index := Mod(index, directions.Length) + 1
+        }
+    } catch {
+        ShowHint("상단 등각도 뷰를 전환할 수 없습니다.")
+    }
 }
 
 SetCatiaDirectionalView(sightY, sightZ, sightX := 0) {
@@ -1570,7 +1603,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "LL", "스케치: 2D Line · 스케치 밖: GSD Line")
         catiaList.Add(, "VV", "스케치: Normal View · 3D: 현재 뷰 반대 방향")
         catiaList.Add(, "Ctrl+Shift+넘 4/6/8/2", "화면 기준 좌·우·위·아래 11.25도 회전")
-        catiaList.Add(, "Ctrl+넘패드 5", "상단 등각도 네 방향 순환")
+        catiaList.Add(, "Ctrl+넘패드 5", "상단 등각도 순환 · 시작 시선 −X,+Y,−Z")
         catiaList.Add(, "Ctrl+넘패드 8/2", "시선 방향 −Z / +Z")
         catiaList.Add(, "Ctrl+넘패드 4/6", "시선 방향 +Y / −Y")
         catiaList.Add(, "Ctrl+넘패드 7/9/1/3", "인접한 두 방향 사이의 45도 뷰")
