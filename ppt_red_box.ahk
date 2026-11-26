@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.62"
+appVersion := "1.0.63"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -302,6 +302,19 @@ FindCatiaContainer(original) {
     return container
 }
 
+FindCatiaOwningPart(container) {
+    candidate := container
+    Loop 30 {
+        try {
+            origin := candidate.OriginElements
+            bodies := candidate.Bodies
+            return candidate
+        }
+        candidate := candidate.Parent
+    }
+    throw Error("선택한 개체가 속한 Part를 찾을 수 없습니다.")
+}
+
 DefineCatiaSelectedContainer() {
     try {
         catia := ComObjActive("CATIA.Application")
@@ -312,7 +325,8 @@ DefineCatiaSelectedContainer() {
             return
         }
         container := FindCatiaContainer(selection.Item2(1).Value)
-        document.Part.InWorkObject := container
+        part := FindCatiaOwningPart(container)
+        part.InWorkObject := container
         ShowHint(container.Name " · Define In Work Object")
     } catch {
         ShowHint("선택한 개체의 Body 또는 Geometrical Set을 작업 대상으로 지정할 수 없습니다.")
