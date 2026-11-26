@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.73"
+appVersion := "1.0.74"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -20,6 +20,16 @@ catiaQuickTrimRepeat := false
 if A_LineFile = A_ScriptFullPath
     InitializeApp()
 
+#HotIf WinActive("ahk_exe POWERPNT.EXE") && IsPowerPointTextEditing()
+$1::TypePowerPointHeldDigit("1")
+$2::TypePowerPointHeldDigit("2")
+$3::TypePowerPointHeldDigit("3")
+$4::TypePowerPointHeldDigit("4")
+$5::TypePowerPointHeldDigit("5")
+$6::TypePowerPointHeldDigit("6")
+$7::TypePowerPointHeldDigit("7")
+$8::TypePowerPointHeldDigit("8")
+$9::TypePowerPointHeldDigit("9")
 #HotIf WinActive("ahk_exe POWERPNT.EXE")
 ^1:: {
     InsertPowerPointTable()
@@ -1255,6 +1265,21 @@ ChangePowerPointTableSize(dimension, delta) {
     return true
 }
 
+IsPowerPointTextEditing() {
+    try return ComObjActive("PowerPoint.Application").ActiveWindow.Selection.Type = 3
+    catch
+        return false
+}
+
+TypePowerPointHeldDigit(key) {
+    hwnd := WinActive("ahk_exe POWERPNT.EXE")
+    longPress := !KeyWait(key, "T0.5")
+    if WinActive("ahk_id " hwnd) && IsPowerPointTextEditing()
+        SendText(longPress ? Chr(0x2460 + Integer(key) - 1) : key)
+    if longPress
+        KeyWait key
+}
+
 InsertPowerPointTable() {
     TrackNativeFreeform()
     try {
@@ -1648,6 +1673,7 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트에 기본 글꼴·크기 적용"],
             ["Ctrl+1", "5행 3열 표 · 기본 글꼴·크기, 가운데 정렬"],
+            ["1~9 길게 누르기", "텍스트 편집 중 0.5초 → ①~⑨"],
             ["Shift+휠", "표 행 → 아래로 추가, 위로 마지막 행 삭제"],
             ["Ctrl+Shift+X", "텍스트 상자 → 가운데 정렬, 자동 크기, 글자 네온"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
