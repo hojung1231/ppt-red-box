@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.80"
+appVersion := "1.0.81"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -1624,6 +1624,7 @@ AdjustShapeOutlineWeight(shape, delta) {
     nextWeight := AdjustedOutlineWeight(current, delta)
     if nextWeight = 0 {
         line.Visible := 0
+        try shape.Glow.Radius := 0
         return
     }
     line.Visible := -1
