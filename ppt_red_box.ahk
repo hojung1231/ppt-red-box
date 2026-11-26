@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.74"
+appVersion := "1.0.75"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -16,20 +16,34 @@ outlineColors := [0x0000FF, 0xFF0000, 0x00FFFF, 0x00FF00, 0x000000] ; Red, blue,
 nativeFreeform := false
 catiaRemoveFaceRepeat := false
 catiaQuickTrimRepeat := false
+pptDigitPrefixTick := -1000
+pptDigitPrefixWindow := 0
 
 if A_LineFile = A_ScriptFullPath
     InitializeApp()
 
 #HotIf WinActive("ahk_exe POWERPNT.EXE") && IsPowerPointTextEditing()
-$1::TypePowerPointHeldDigit("1")
-$2::TypePowerPointHeldDigit("2")
-$3::TypePowerPointHeldDigit("3")
-$4::TypePowerPointHeldDigit("4")
-$5::TypePowerPointHeldDigit("5")
-$6::TypePowerPointHeldDigit("6")
-$7::TypePowerPointHeldDigit("7")
-$8::TypePowerPointHeldDigit("8")
-$9::TypePowerPointHeldDigit("9")
+~d::
+~+d::MarkPowerPointDigitPrefix()
+#HotIf WinActive("ahk_exe POWERPNT.EXE") && IsPowerPointTextEditing() && IsPowerPointDigitPrefixRecent()
+:*?:d1::①
+:*?:d2::②
+:*?:d3::③
+:*?:d4::④
+:*?:d5::⑤
+:*?:d6::⑥
+:*?:d7::⑦
+:*?:d8::⑧
+:*?:d9::⑨
+:*?:ㅇ1::①
+:*?:ㅇ2::②
+:*?:ㅇ3::③
+:*?:ㅇ4::④
+:*?:ㅇ5::⑤
+:*?:ㅇ6::⑥
+:*?:ㅇ7::⑦
+:*?:ㅇ8::⑧
+:*?:ㅇ9::⑨
 #HotIf WinActive("ahk_exe POWERPNT.EXE")
 ^1:: {
     InsertPowerPointTable()
@@ -1271,13 +1285,15 @@ IsPowerPointTextEditing() {
         return false
 }
 
-TypePowerPointHeldDigit(key) {
-    hwnd := WinActive("ahk_exe POWERPNT.EXE")
-    longPress := !KeyWait(key, "T0.5")
-    if WinActive("ahk_id " hwnd) && IsPowerPointTextEditing()
-        SendText(longPress ? Chr(0x2460 + Integer(key) - 1) : key)
-    if longPress
-        KeyWait key
+MarkPowerPointDigitPrefix() {
+    global pptDigitPrefixTick, pptDigitPrefixWindow
+    pptDigitPrefixTick := A_TickCount
+    pptDigitPrefixWindow := WinActive("ahk_exe POWERPNT.EXE")
+}
+
+IsPowerPointDigitPrefixRecent() {
+    return A_TickCount - pptDigitPrefixTick <= 500
+        && pptDigitPrefixWindow = WinActive("ahk_exe POWERPNT.EXE")
 }
 
 InsertPowerPointTable() {
@@ -1673,7 +1689,7 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트에 기본 글꼴·크기 적용"],
             ["Ctrl+1", "5행 3열 표 · 기본 글꼴·크기, 가운데 정렬"],
-            ["1~9 길게 누르기", "텍스트 편집 중 0.5초 → ①~⑨"],
+            ["ㅇ/D + 1~9", "텍스트 편집 중 0.5초 이내 입력 → ①~⑨"],
             ["Shift+휠", "표 행 → 아래로 추가, 위로 마지막 행 삭제"],
             ["Ctrl+Shift+X", "텍스트 상자 → 가운데 정렬, 자동 크기, 글자 네온"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
