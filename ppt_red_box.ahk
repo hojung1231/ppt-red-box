@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.78"
+appVersion := "1.0.79"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -1578,8 +1578,13 @@ AdjustShapeOutlineWeight(shape, delta) {
     line := shape.Line
     current := line.Visible = -1 ? line.Weight : 0
     wasHidden := line.Visible != -1
+    nextWeight := AdjustedOutlineWeight(current, delta)
+    if nextWeight = 0 {
+        line.Visible := 0
+        return
+    }
     line.Visible := -1
-    line.Weight := AdjustedOutlineWeight(current, delta)
+    line.Weight := nextWeight
     if wasHidden {
         line.ForeColor.RGB := outlineColors[1]
         line.Transparency := 0
@@ -1587,7 +1592,7 @@ AdjustShapeOutlineWeight(shape, delta) {
 }
 
 AdjustedOutlineWeight(current, delta) {
-    return Max(0.25, current + delta)
+    return Max(0, current + delta)
 }
 
 ToggleShapeGlow(shape) {
