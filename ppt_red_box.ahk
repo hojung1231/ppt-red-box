@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.71"
+appVersion := "1.0.72"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -407,7 +407,12 @@ DefineCatiaSelectedContainer() {
             ShowHint("화면 또는 트리에서 개체 하나를 선택하세요.")
             return
         }
-        container := FindCatiaContainer(selection.Item2(1).Value)
+        selected := selection.Item2(1)
+        kind := selected.Type
+        if kind = "Body" || kind = "HybridBody" || kind = "OrderedGeometricalSet"
+            container := selected.Value
+        else
+            container := FindCatiaContainer(selected.Value)
         part := FindCatiaOwningPart(container)
         part.InWorkObject := container
         ShowHint(container.Name " · Define In Work Object")
@@ -1680,7 +1685,7 @@ ShowShortcutWindow(*) {
         catiaList.Add(, "JJ", "GSD에서 Join 실행")
         catiaList.Add(, "Ctrl+E", "Extruded Surface Definition 열기")
         catiaList.Add(, "RR", "Remove Face 연속 실행 · Esc로 종료")
-        catiaList.Add(, "Ctrl+F", "상위 Body·Geometrical Set을 Define In Work Object")
+        catiaList.Add(, "Ctrl+F", "선택한 Body·셋 또는 개체의 상위를 작업 대상으로")
         catiaList.Add(, "FF", "GSD에서 Fill 실행")
         catiaList.ModifyCol(1, 125)
         catiaList.ModifyCol(2, 382)
