@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.79"
+appVersion := "1.0.80"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -36,10 +36,10 @@ $7::TypePowerPointCircledDigit("7")
 $8::TypePowerPointCircledDigit("8")
 $9::TypePowerPointCircledDigit("9")
 #HotIf WinActive("ahk_exe POWERPNT.EXE") && (GetKeyState("LShift", "P") || GetKeyState("RShift", "P"))
-*^sc04B::AlignPowerPointShapes(0, "sc04B")
-*^sc04D::AlignPowerPointShapes(2, "sc04D")
-*^sc048::AlignPowerPointShapes(3, "sc048")
-*^sc050::AlignPowerPointShapes(5, "sc050")
+*^sc04B::HandlePowerPointAlignment(0, "sc04B", "sc04D", 0)
+*^sc04D::HandlePowerPointAlignment(2, "sc04D", "sc04B", 0)
+*^sc048::HandlePowerPointAlignment(3, "sc048", "sc050", 1)
+*^sc050::HandlePowerPointAlignment(5, "sc050", "sc048", 1)
 #HotIf WinActive("ahk_exe POWERPNT.EXE")
 ^1:: {
     InsertPowerPointTable()
@@ -1275,6 +1275,49 @@ ChangePowerPointTableSize(dimension, delta) {
     return true
 }
 
+HandlePowerPointAlignment(alignment, key, oppositeKey, distribution) {
+    static busy := false
+    if busy
+        return
+    busy := true
+    hwnd := WinActive("ahk_exe POWERPNT.EXE")
+    try {
+        together := false
+        while GetKeyState(key, "P") {
+            if GetKeyState(oppositeKey, "P") {
+                together := true
+                break
+            }
+            Sleep 10
+        }
+        KeyWait key
+        if together
+            KeyWait oppositeKey
+        if !WinActive("ahk_id " hwnd)
+            return
+        if together
+            DistributePowerPointShapes(distribution)
+        else
+            AlignPowerPointShapes(alignment, key)
+    } finally {
+        busy := false
+    }
+}
+
+DistributePowerPointShapes(direction) {
+    try {
+        ppt := ComObjActive("PowerPoint.Application")
+        selected := ppt.ActiveWindow.Selection.ShapeRange
+        if selected.Count < 3 {
+            ShowHint("간격을 배분할 개체를 3개 이상 선택하세요.")
+            return
+        }
+        selected.Distribute(direction, 0)
+    } catch {
+        ShowHint("선택한 개체의 간격을 배분할 수 없습니다.")
+    }
+}
+
 AlignPowerPointShapes(alignment, key) {
     try {
         ppt := ComObjActive("PowerPoint.Application")
@@ -1727,6 +1770,7 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+A", "화살촉 → 시작점, 끝점, 양쪽, 없음"],
             ["Ctrl+Shift+Q", "도트 → 시작점, 끝점, 양쪽, 없음"],
             ["Ctrl+Shift+넘 4/6/8/2", "개체 왼쪽·오른쪽·위쪽·아래쪽 맞춤"],
+            ["Ctrl+Shift+넘 4+6 / 8+2", "가로 / 세로 간격 동일하게 배분"],
             ["Ctrl+Shift+C", "선·글자색 → 빨강, 파랑, 노랑, 초록, 검정"],
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트에 기본 글꼴·크기 적용"],
