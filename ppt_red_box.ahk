@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.81"
+appVersion := "1.0.82"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -12,29 +12,27 @@ defaultFontName := "현대하모니 M"
 defaultFontSize := 12
 fontSettingsPath := A_ScriptDir "\ppt_red_box.ini"
 outlineWeight := 1.5
+arrowheadSize := 2
+dotSize := 2
 outlineColors := [0x0000FF, 0xFF0000, 0x00FFFF, 0x00FF00, 0x000000] ; Red, blue, yellow, green, black in Office BGR
 nativeFreeform := false
 catiaRemoveFaceRepeat := false
 catiaQuickTrimRepeat := false
-pptDigitPrefixTick := -1000
-pptDigitPrefixWindow := 0
 
 if A_LineFile = A_ScriptFullPath
     InitializeApp()
 
 #HotIf WinActive("ahk_exe POWERPNT.EXE") && IsPowerPointTextEditing()
-~d::
-~+d::MarkPowerPointDigitPrefix()
-#HotIf WinActive("ahk_exe POWERPNT.EXE") && IsPowerPointTextEditing() && IsPowerPointDigitPrefixRecent()
-$1::TypePowerPointCircledDigit("1")
-$2::TypePowerPointCircledDigit("2")
-$3::TypePowerPointCircledDigit("3")
-$4::TypePowerPointCircledDigit("4")
-$5::TypePowerPointCircledDigit("5")
-$6::TypePowerPointCircledDigit("6")
-$7::TypePowerPointCircledDigit("7")
-$8::TypePowerPointCircledDigit("8")
-$9::TypePowerPointCircledDigit("9")
+$d::SendEvent "{Blind}d"
+d & 1::TypePowerPointCircledDigit("1")
+d & 2::TypePowerPointCircledDigit("2")
+d & 3::TypePowerPointCircledDigit("3")
+d & 4::TypePowerPointCircledDigit("4")
+d & 5::TypePowerPointCircledDigit("5")
+d & 6::TypePowerPointCircledDigit("6")
+d & 7::TypePowerPointCircledDigit("7")
+d & 8::TypePowerPointCircledDigit("8")
+d & 9::TypePowerPointCircledDigit("9")
 #HotIf WinActive("ahk_exe POWERPNT.EXE") && (GetKeyState("LShift", "P") || GetKeyState("RShift", "P"))
 *^sc04B::HandlePowerPointAlignment(0, "sc04B", "sc04D", 0)
 *^sc04D::HandlePowerPointAlignment(2, "sc04D", "sc04B", 0)
@@ -1335,25 +1333,9 @@ IsPowerPointTextEditing() {
         return false
 }
 
-MarkPowerPointDigitPrefix() {
-    global pptDigitPrefixTick, pptDigitPrefixWindow
-    pptDigitPrefixTick := A_TickCount
-    pptDigitPrefixWindow := WinActive("ahk_exe POWERPNT.EXE")
-}
-
 TypePowerPointCircledDigit(key) {
-    global pptDigitPrefixTick
-    pptDigitPrefixTick := -1000
-    ; The ordinary digit first commits an IME-composing Korean ㅇ.
-    ; Replace the committed prefix and digit as one circled numeral.
-    SetKeyDelay 10, 10
-    SendEvent key
-    SendEvent "{BS 2}{U+" Format("{:04X}", 0x2460 + Integer(key) - 1) "}"
-}
-
-IsPowerPointDigitPrefixRecent() {
-    return A_TickCount - pptDigitPrefixTick <= 500
-        && pptDigitPrefixWindow = WinActive("ahk_exe POWERPNT.EXE")
+    SendText Chr(0x2460 + Integer(key) - 1)
+    KeyWait key
 }
 
 InsertPowerPointTable() {
@@ -1467,6 +1449,40 @@ LoadFontSettings() {
             defaultFontName := name
         if IsNumber(size) && size > 0
             defaultFontSize := Number(size)
+    }
+}
+
+LoadDrawingSettings() {
+    global outlineWeight, arrowheadSize, dotSize
+    try {
+        weight := IniRead(fontSettingsPath, "Drawing", "Weight", 1.5)
+        arrow := IniRead(fontSettingsPath, "Drawing", "ArrowSize", 2)
+        dot := IniRead(fontSettingsPath, "Drawing", "DotSize", 2)
+        if IsNumber(weight) && weight > 0 && weight <= 1584
+            outlineWeight := Number(weight)
+        if IsInteger(arrow) && arrow >= 1 && arrow <= 3
+            arrowheadSize := Integer(arrow)
+        if IsInteger(dot) && dot >= 1 && dot <= 3
+            dotSize := Integer(dot)
+    }
+}
+
+SaveDrawingSettings(weightChoice, arrowChoice, dotChoice, status, *) {
+    global outlineWeight, arrowheadSize, dotSize
+    weight := Trim(weightChoice.Text)
+    if !IsNumber(weight) || weight <= 0 || weight > 1584 {
+        status.Text := "선 두께는 0보다 크고 1584 이하인 pt 값으로 입력하세요."
+        return
+    }
+    try {
+        IniWrite("Weight=" weight "`nArrowSize=" arrowChoice.Value "`nDotSize=" dotChoice.Value,
+            fontSettingsPath, "Drawing")
+        outlineWeight := Number(weight)
+        arrowheadSize := arrowChoice.Value
+        dotSize := dotChoice.Value
+        status.Text := "저장됨 · 새 선·사각형과 화살표·도트 단축키에 적용됩니다."
+    } catch {
+        status.Text := "설정 파일을 저장할 수 없습니다."
     }
 }
 
@@ -1602,6 +1618,11 @@ CycleSelectedArrowheads(style := 2) {
 }
 
 CycleArrowheads(line, style := 2) {
+    size := style = 6 ? dotSize : arrowheadSize
+    line.BeginArrowheadLength := size
+    line.BeginArrowheadWidth := size
+    line.EndArrowheadLength := size
+    line.EndArrowheadWidth := size
     begin := line.BeginArrowheadStyle != 1
     end := line.EndArrowheadStyle != 1
     next := Mod(begin + 2 * end + 1, 4)
@@ -1743,6 +1764,7 @@ HideHint() {
 
 InitializeApp() {
     LoadFontSettings()
+    LoadDrawingSettings()
     A_IconTip := "PowerPoint 그리기 도구"
     A_TrayMenu.Add("단축키 목록", ShowShortcutWindow)
     A_TrayMenu.Default := "단축키 목록"
@@ -1776,7 +1798,7 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트에 기본 글꼴·크기 적용"],
             ["Ctrl+1", "5행 3열 표 · 기본 글꼴·크기, 가운데 정렬"],
-            ["ㅇ/D + 1~9", "텍스트 편집 중 0.5초 이내 입력 → ①~⑨"],
+            ["ㅇ/D + 1~9", "텍스트 편집 중 ㅇ/D를 누른 채 숫자 → ①~⑨"],
             ["Shift+휠", "표 행 → 아래로 추가, 위로 마지막 행 삭제"],
             ["Ctrl+Shift+X", "텍스트 상자 → 가운데 정렬, 자동 크기, 글자 네온"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
@@ -1833,6 +1855,18 @@ ShowShortcutWindow(*) {
         saveFont := window.AddButton("x+8 yp w55", "저장")
         fontStatus := window.AddText("xm y+7 w515", "텍스트 상자·표 생성과 F3에 적용됩니다.")
         saveFont.OnEvent("Click", SaveFontSettings.Bind(fontChoice, sizeChoice, fontStatus))
+        window.AddText("xm y+12", "선 두께(pt)")
+        weightChoice := window.AddComboBox("x+8 yp-3 w65", ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "4", "6"])
+        weightChoice.Text := outlineWeight
+        window.AddText("x+10 yp+3", "화살표")
+        arrowChoice := window.AddDropDownList("x+6 yp-3 w65", ["작게", "보통", "크게"])
+        arrowChoice.Choose(arrowheadSize)
+        window.AddText("x+10 yp+3", "도트")
+        dotChoice := window.AddDropDownList("x+6 yp-3 w65", ["작게", "보통", "크게"])
+        dotChoice.Choose(dotSize)
+        saveDrawing := window.AddButton("x+8 yp w55", "저장")
+        drawingStatus := window.AddText("xm y+7 w515", "새 선·사각형과 Ctrl+Shift+A/Q에 적용됩니다.")
+        saveDrawing.OnEvent("Click", SaveDrawingSettings.Bind(weightChoice, arrowChoice, dotChoice, drawingStatus))
         window.AddText("xm y+14", "자주 쓰는 기호")
         copyStatus := window.AddText("x+10 yp w250", "")
         window.SetFont("s13", "Segoe UI Symbol")
