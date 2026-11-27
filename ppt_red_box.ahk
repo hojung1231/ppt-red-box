@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.83"
+appVersion := "1.0.84"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -19,20 +19,26 @@ nativeFreeform := false
 catiaRemoveFaceRepeat := false
 catiaQuickTrimRepeat := false
 
+
+pptTabPending := false
+pptTabUsed := false
+
 if A_LineFile = A_ScriptFullPath
     InitializeApp()
 
-#HotIf WinActive("ahk_exe POWERPNT.EXE") && IsPowerPointTextEditing()
-$Tab::SendEvent "{Blind}{Tab}"
-Tab & 1::TypePowerPointCircledDigit("1")
-Tab & 2::TypePowerPointCircledDigit("2")
-Tab & 3::TypePowerPointCircledDigit("3")
-Tab & 4::TypePowerPointCircledDigit("4")
-Tab & 5::TypePowerPointCircledDigit("5")
-Tab & 6::TypePowerPointCircledDigit("6")
-Tab & 7::TypePowerPointCircledDigit("7")
-Tab & 8::TypePowerPointCircledDigit("8")
-Tab & 9::TypePowerPointCircledDigit("9")
+#HotIf WinActive("ahk_exe POWERPNT.EXE")
+$Tab::BeginPowerPointTab()
+$Tab Up::FinishPowerPointTab()
+#HotIf WinActive("ahk_exe POWERPNT.EXE") && GetKeyState("Tab", "P")
+$1::TypePowerPointCircledDigit("1")
+$2::TypePowerPointCircledDigit("2")
+$3::TypePowerPointCircledDigit("3")
+$4::TypePowerPointCircledDigit("4")
+$5::TypePowerPointCircledDigit("5")
+$6::TypePowerPointCircledDigit("6")
+$7::TypePowerPointCircledDigit("7")
+$8::TypePowerPointCircledDigit("8")
+$9::TypePowerPointCircledDigit("9")
 #HotIf WinActive("ahk_exe POWERPNT.EXE") && (GetKeyState("LShift", "P") || GetKeyState("RShift", "P"))
 *^sc04B::HandlePowerPointAlignment(0, "sc04B", "sc04D", 0)
 *^sc04D::HandlePowerPointAlignment(2, "sc04D", "sc04B", 0)
@@ -1333,8 +1339,32 @@ IsPowerPointTextEditing() {
         return false
 }
 
+BeginPowerPointTab() {
+    global pptTabPending, pptTabUsed
+    if pptTabPending
+        return
+    pptTabPending := true
+    pptTabUsed := false
+    KeyWait "Tab"
+    FinishPowerPointTab()
+}
+
+FinishPowerPointTab() {
+    global pptTabPending
+    if !pptTabPending
+        return
+    pptTabPending := false
+    if !pptTabUsed && WinActive("ahk_exe POWERPNT.EXE")
+        SendEvent "{Blind}{Tab}"
+}
+
 TypePowerPointCircledDigit(key) {
-    SendText Chr(0x2460 + Integer(key) - 1)
+    global pptTabUsed
+    pptTabUsed := true
+    if pptTabPending && IsPowerPointTextEditing()
+        SendText Chr(0x2460 + Integer(key) - 1)
+    else
+        SendEvent "{Tab}" key
     KeyWait key
 }
 
