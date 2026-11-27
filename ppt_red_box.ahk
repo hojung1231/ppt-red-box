@@ -2,7 +2,7 @@
 #SingleInstance Force
 CoordMode "Mouse", "Screen"
 
-appVersion := "1.0.82"
+appVersion := "1.0.83"
 updateUrl := "https://raw.githubusercontent.com/hojung1231/ppt-red-box/main/ppt_red_box.ahk"
 updateRequest := false
 updateDeadline := 0
@@ -23,16 +23,16 @@ if A_LineFile = A_ScriptFullPath
     InitializeApp()
 
 #HotIf WinActive("ahk_exe POWERPNT.EXE") && IsPowerPointTextEditing()
-$d::SendEvent "{Blind}d"
-d & 1::TypePowerPointCircledDigit("1")
-d & 2::TypePowerPointCircledDigit("2")
-d & 3::TypePowerPointCircledDigit("3")
-d & 4::TypePowerPointCircledDigit("4")
-d & 5::TypePowerPointCircledDigit("5")
-d & 6::TypePowerPointCircledDigit("6")
-d & 7::TypePowerPointCircledDigit("7")
-d & 8::TypePowerPointCircledDigit("8")
-d & 9::TypePowerPointCircledDigit("9")
+$Tab::SendEvent "{Blind}{Tab}"
+Tab & 1::TypePowerPointCircledDigit("1")
+Tab & 2::TypePowerPointCircledDigit("2")
+Tab & 3::TypePowerPointCircledDigit("3")
+Tab & 4::TypePowerPointCircledDigit("4")
+Tab & 5::TypePowerPointCircledDigit("5")
+Tab & 6::TypePowerPointCircledDigit("6")
+Tab & 7::TypePowerPointCircledDigit("7")
+Tab & 8::TypePowerPointCircledDigit("8")
+Tab & 9::TypePowerPointCircledDigit("9")
 #HotIf WinActive("ahk_exe POWERPNT.EXE") && (GetKeyState("LShift", "P") || GetKeyState("RShift", "P"))
 *^sc04B::HandlePowerPointAlignment(0, "sc04B", "sc04D", 0)
 *^sc04D::HandlePowerPointAlignment(2, "sc04D", "sc04B", 0)
@@ -1798,7 +1798,7 @@ ShowShortcutWindow(*) {
             ["Ctrl+Shift+N", "흰색 네온 효과 켜기·끄기 (3pt, 투명도 10%)"],
             ["F3", "선택한 텍스트에 기본 글꼴·크기 적용"],
             ["Ctrl+1", "5행 3열 표 · 기본 글꼴·크기, 가운데 정렬"],
-            ["ㅇ/D + 1~9", "텍스트 편집 중 ㅇ/D를 누른 채 숫자 → ①~⑨"],
+            ["Tab + 1~9", "텍스트 편집 중 Tab을 누른 채 숫자 → ①~⑨"],
             ["Shift+휠", "표 행 → 아래로 추가, 위로 마지막 행 삭제"],
             ["Ctrl+Shift+X", "텍스트 상자 → 가운데 정렬, 자동 크기, 글자 네온"],
             ["Ctrl+Shift+" Chr(96), "선 종류 → 실선, 사각 점선, 파선"],
